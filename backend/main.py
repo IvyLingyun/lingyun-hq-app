@@ -128,21 +128,33 @@ def execute_sql(query: str, params: dict = None) -> List[Dict[str, Any]]:
         raise HTTPException(status_code=500, detail=str(e))
 
 # ─── LLM Helper ─────────────────────────────────────────────────────────────
+def _get_auth_token() -> str:
+    """Get a valid auth token from the WorkspaceClient."""
+    # Try direct token first
+    if w.config.token:
+        return w.config.token
+    # Try authenticate() which works for OAuth/SP auth in Databricks Apps
+    try:
+        auth_func = w.config.authenticate
+        if callable(auth_func):
+            headers = auth_func()
+            if isinstance(headers, dict):
+                return headers.get("Authorization", "").replace("Bearer ", "")
+    except Exception:
+        pass
+    # Fallback: use DATABRICKS_TOKEN env var
+    return os.environ.get("DATABRICKS_TOKEN", "")
+
 def call_llm(system_prompt: str, user_message: str) -> str:
     """Call Foundation Model API via REST (bypasses SDK serialization issues)."""
     try:
         import urllib.request
         import ssl
-        host = w.config.host.rstrip("/")
-        token = w.config.token
-        if not token:
-            # For OAuth/U2M auth, get token from authenticate()
-            auth = w.config.authenticate()
-            if isinstance(auth, dict):
-                token = auth.get("Authorization", "").replace("Bearer ", "")
-            elif callable(auth):
-                headers = auth("GET", "")
-                token = headers.get("Authorization", "").replace("Bearer ", "")
+        host = w.config.host
+        if host and not host.startswith("http"):
+            host = f"https://{host}"
+        host = host.rstrip("/")
+        token = _get_auth_token()
 
         payload = json.dumps({
             "messages": [
@@ -605,3 +617,22 @@ elif static_dir.exists():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+@app.get("/api/debug/auth")
+def debug_auth():
+    """Debug auth status."""
+    host = w.config.host
+    has_token = bool(w.config.token)
+    try:
+        auth_token = _get_auth_token()
+        token_prefix = auth_token[:20] + "..." if auth_token else "NONE"
+    except Exception as e:
+        token_prefix = f"ERROR: {e}"
+    return {
+        "host": host,
+        "has_direct_token": has_token,
+        "auth_token_prefix": token_prefix,
+        "env_databricks_host": os.environ.get("DATABRICKS_HOST", "not set"),
+        "env_databricks_token": "set" if os.environ.get("DATABRICKS_TOKEN") else "not set",
+        "is_app": bool(os.environ.get("DATABRICKS_APP_NAME")),
+    }
