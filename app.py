@@ -602,22 +602,7 @@ def get_alerts():
         "vip_pending_actions": vip_pending,
     }
 
-# ─── Serve Static Frontend ──────────────────────────────────────────────────
-import pathlib
-
-# Try React build first, then fall back to static single-page HTML
-frontend_build = pathlib.Path(__file__).parent / "frontend" / "build"
-static_dir = pathlib.Path(__file__).parent / "static"
-
-if frontend_build.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_build), html=True), name="frontend")
-elif static_dir.exists():
-    app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
+# ─── Debug Endpoint ──────────────────────────────────────────────────────────
 @app.get("/api/debug/auth")
 def debug_auth():
     """Debug auth status."""
@@ -636,3 +621,19 @@ def debug_auth():
         "env_databricks_token": "set" if os.environ.get("DATABRICKS_TOKEN") else "not set",
         "is_app": bool(os.environ.get("DATABRICKS_APP_NAME")),
     }
+
+# ─── Serve Static Frontend ──────────────────────────────────────────────────
+import pathlib
+
+# Try React build first, then fall back to static single-page HTML
+frontend_build = pathlib.Path(__file__).parent / "frontend" / "build"
+static_dir = pathlib.Path(__file__).parent / "static"
+
+if frontend_build.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_build), html=True), name="frontend")
+elif static_dir.exists():
+    app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
