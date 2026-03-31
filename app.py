@@ -140,7 +140,18 @@ def call_llm(system_prompt: str, user_message: str) -> str:
             max_tokens=1024,
             temperature=0.3,
         )
-        return response.choices[0].message.content
+        # Handle both object-style and dict-style SDK responses
+        if hasattr(response, 'choices'):
+            choices = response.choices
+        else:
+            choices = response.get("choices", []) if isinstance(response, dict) else []
+        if not choices:
+            return "No response from AI model."
+        choice = choices[0]
+        if isinstance(choice, dict):
+            msg = choice.get("message", {})
+            return msg.get("content", "") if isinstance(msg, dict) else str(msg)
+        return choice.message.content
     except Exception as e:
         logger.error(f"LLM call error: {e}")
         return f"AI service temporarily unavailable: {str(e)}"
