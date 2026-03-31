@@ -175,8 +175,13 @@ def call_llm(system_prompt: str, user_message: str) -> str:
             method="POST",
         )
         ctx = ssl.create_default_context()
-        with urllib.request.urlopen(req, context=ctx, timeout=60) as resp:
-            result = json.loads(resp.read())
+        try:
+            with urllib.request.urlopen(req, context=ctx, timeout=60) as resp:
+                result = json.loads(resp.read())
+        except urllib.error.HTTPError as http_err:
+            error_body = http_err.read().decode()[:500]
+            logger.error(f"LLM HTTP {http_err.code}: {error_body}")
+            return f"AI service error ({http_err.code}): {error_body[:200]}"
 
         choices = result.get("choices", [])
         if not choices:
