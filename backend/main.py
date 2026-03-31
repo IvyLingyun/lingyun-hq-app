@@ -6,6 +6,7 @@ FastAPI Backend serving the React frontend with real-time Databricks data.
 import os
 import json
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
@@ -98,8 +99,19 @@ def execute_sql(query: str, params: dict = None) -> List[Dict[str, Any]]:
             statement=query,
             catalog=CATALOG,
             schema=SCHEMA,
-            wait_timeout="60s",
+            wait_timeout="50s",
         )
+
+        # Handle PENDING state with polling
+        if response.status.state == StatementState.PENDING:
+            stmt_id = response.statement_id
+            for _ in range(30):
+                time.sleep(2)
+                response = w.statement_execution.get_statement(stmt_id)
+                if response.status.state == StatementState.SUCCEEDED:
+                    break
+                elif response.status.state in (StatementState.FAILED, StatementState.CANCELED, StatementState.CLOSED):
+                    raise HTTPException(status_code=500, detail=f"SQL failed: {response.status.error}")
 
         if response.status.state != StatementState.SUCCEEDED:
             raise HTTPException(status_code=500, detail=f"SQL failed: {response.status.error}")

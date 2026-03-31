@@ -4,14 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Lingyun Command Center</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 <style>
 /* ── Reset & Base ──────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; width: 100%; }
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: #030712; color: #f9fafb; overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -141,6 +139,7 @@ input, textarea, select { font-family: inherit; outline: none; }
 .badge-status-open { background: rgba(59,130,246,0.15); color: #93c5fd; }
 .badge-status-pending { background: rgba(245,158,11,0.15); color: #fbbf24; }
 .badge-status-working { background: rgba(139,92,246,0.15); color: #c4b5fd; }
+.badge-status-in_progress { background: rgba(139,92,246,0.15); color: #c4b5fd; }
 .badge-status-completed { background: rgba(16,185,129,0.15); color: #6ee7b7; }
 .badge-status-escalated { background: rgba(239,68,68,0.15); color: #fca5a5; }
 
@@ -151,7 +150,7 @@ input, textarea, select { font-family: inherit; outline: none; }
   background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
   margin: 4px;
 }
-.cat-dot { width: 8px; height: 8px; border-radius: 50%; }
+.cat-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 
 /* ── Decision Panel ────────────────────────────────────────────── */
 .split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -286,9 +285,7 @@ input, textarea, select { font-family: inherit; outline: none; }
 .genie-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 200px; }
 .genie-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.08); }
 .genie-input-row { display: flex; gap: 8px; }
-.genie-sql {
-  margin-top: 8px; font-size: 11px; color: #9ca3af;
-}
+.genie-sql { margin-top: 8px; font-size: 11px; color: #9ca3af; }
 .genie-sql summary { cursor: pointer; font-weight: 600; color: #a78bfa; }
 .genie-sql pre {
   margin-top: 6px; padding: 10px; border-radius: 8px;
@@ -302,11 +299,8 @@ input, textarea, select { font-family: inherit; outline: none; }
   border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.6s linear infinite;
   display: inline-block;
 }
+.spinner-sm { width: 16px; height: 16px; }
 .loading-center { display: flex; align-items: center; justify-content: center; padding: 40px; }
-.skeleton {
-  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
-  background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px;
-}
 
 /* ── Order Modal ───────────────────────────────────────────────── */
 .modal-overlay {
@@ -333,6 +327,25 @@ input, textarea, select { font-family: inherit; outline: none; }
   display: flex; align-items: center; gap: 8px;
 }
 
+/* ── CSS Bar Chart ─────────────────────────────────────────────── */
+.bar-chart { display: flex; flex-direction: column; gap: 10px; }
+.bar-row { display: flex; align-items: center; gap: 12px; }
+.bar-label { font-size: 12px; color: #d1d5db; width: 110px; flex-shrink: 0; text-align: right; }
+.bar-track { flex: 1; height: 28px; background: rgba(255,255,255,0.04); border-radius: 6px; overflow: hidden; position: relative; }
+.bar-fill { height: 100%; border-radius: 6px; transition: width 1s ease-out; display: flex; align-items: center; padding-left: 10px; font-size: 11px; font-weight: 600; color: #fff; min-width: fit-content; }
+.bar-value { font-size: 12px; color: #9ca3af; width: 60px; text-align: right; flex-shrink: 0; }
+
+/* ── SVG Radar ─────────────────────────────────────────────────── */
+.radar-container { display: flex; flex-direction: column; align-items: center; }
+.radar-legend { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
+.radar-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #d1d5db; }
+.radar-legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+/* ── Sentiment Mini Chart ──────────────────────────────────────── */
+.trend-chart { display: flex; align-items: flex-end; gap: 3px; height: 80px; padding-top: 10px; }
+.trend-bar { flex: 1; border-radius: 3px 3px 0 0; transition: height 0.5s ease-out; min-width: 4px; }
+.trend-labels { display: flex; justify-content: space-between; font-size: 10px; color: #6b7280; margin-top: 4px; }
+
 /* ── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .hero-grid { grid-template-columns: repeat(2, 1fr); }
@@ -351,787 +364,909 @@ input, textarea, select { font-family: inherit; outline: none; }
 <body>
 <div id="root"></div>
 
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-router-dom@6.20.0/dist/umd/react-router-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-<script type="text/babel" data-type="module">
+<script>
 /* ══════════════════════════════════════════════════════════════════
-   Lingyun Command Center - Single-File React Frontend
+   Lingyun Command Center - Vanilla JS Frontend (No React, No CDN)
    ══════════════════════════════════════════════════════════════════ */
-const { useState, useEffect, useRef, useCallback } = React;
-const { HashRouter, Routes, Route, useNavigate, useLocation } = ReactRouterDOM;
-const {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  LineChart, Line, Legend, Cell
-} = Recharts;
 
 // ── Helpers ──────────────────────────────────────────────────────
-const fmt = (n, prefix = '') => {
+function fmt(n, prefix) {
+  prefix = prefix || '';
   if (n == null || isNaN(Number(n))) return '--';
-  const num = Number(n);
+  var num = Number(n);
   if (num >= 1e6) return prefix + (num / 1e6).toFixed(2) + 'M';
   if (num >= 1e3) return prefix + (num / 1e3).toFixed(1) + 'K';
   return prefix + num.toFixed(num % 1 === 0 ? 0 : 2);
-};
+}
+
+function esc(str) {
+  if (!str) return '';
+  var d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
 
 async function api(path, opts) {
   try {
-    const res = await fetch(path, opts);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    var res = await fetch(path, opts);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     return await res.json();
   } catch (e) {
-    console.error(`API ${path}:`, e);
+    console.error('API ' + path + ':', e);
     return null;
   }
 }
 
-// ── Spinner Component ────────────────────────────────────────────
-function Spinner() { return <div className="loading-center"><div className="spinner"></div></div>; }
-
-// ── Toast Component ──────────────────────────────────────────────
-function Toast({ message, onClose }) {
-  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
-  return <div className="toast">{"\u2713"} {message}</div>;
+function showToast(msg) {
+  var existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  var t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = '\u2713 ' + esc(msg);
+  document.body.appendChild(t);
+  setTimeout(function() { t.remove(); }, 3500);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// NAVBAR
-// ═══════════════════════════════════════════════════════════════════
-const NAV_ITEMS = [
-  { path: '/', label: 'Executive Insights' },
-  { path: '/decisions', label: 'AI Decision Hub' },
-  { path: '/portal', label: 'Consumer Portal' },
-];
-
-function Navbar() {
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  return (
-    <nav className="navbar">
-      <div className="navbar-left">
-        <div className="logo-box">{"\u51CC"}</div>
-        <span className="navbar-title">Lingyun Command Center</span>
-      </div>
-      <div className="nav-tabs">
-        {NAV_ITEMS.map(item => (
-          <button key={item.path}
-            className={`nav-tab ${pathname === item.path ? 'active' : ''}`}
-            onClick={() => navigate(item.path)}>
-            {item.label}
-          </button>
-        ))}
-      </div>
-      <div className="live-dot">System Online</div>
-    </nav>
-  );
+function spinnerHTML() {
+  return '<div class="loading-center"><div class="spinner"></div></div>';
 }
+
+// ── Hash Router ──────────────────────────────────────────────────
+var currentRoute = '';
+
+function getRoute() {
+  var h = window.location.hash || '#/';
+  if (h === '#' || h === '#/') return '/';
+  return h.substring(1);
+}
+
+function navigate(path) {
+  window.location.hash = '#' + path;
+}
+
+// ── Navbar ───────────────────────────────────────────────────────
+function renderNavbar() {
+  var route = getRoute();
+  var navItems = [
+    { path: '/', altPath: '/insights', label: 'Executive Insights' },
+    { path: '/staff', label: 'Staff AI Hub' },
+    { path: '/consumer', label: 'Consumer Portal' }
+  ];
+  var tabsHTML = navItems.map(function(item) {
+    var isActive = route === item.path || (item.altPath && route === item.altPath);
+    return '<button class="nav-tab' + (isActive ? ' active' : '') + '" data-nav="' + item.path + '">' + esc(item.label) + '</button>';
+  }).join('');
+
+  return '<nav class="navbar">' +
+    '<div class="navbar-left">' +
+      '<div class="logo-box">\u51CC</div>' +
+      '<span class="navbar-title">Lingyun Command Center</span>' +
+    '</div>' +
+    '<div class="nav-tabs">' + tabsHTML + '</div>' +
+    '<div class="live-dot">System Online</div>' +
+  '</nav>';
+}
+
+// ── Routing + Render ─────────────────────────────────────────────
+function render() {
+  var route = getRoute();
+  if (route === currentRoute) return;
+  currentRoute = route;
+
+  var root = document.getElementById('root');
+  root.innerHTML = renderNavbar() + '<div id="page-content"></div>';
+
+  // Attach nav click handlers
+  root.querySelectorAll('.nav-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      navigate(this.getAttribute('data-nav'));
+    });
+  });
+
+  var page = document.getElementById('page-content');
+
+  if (route === '/' || route === '/insights') {
+    renderInsightsPage(page);
+  } else if (route === '/staff') {
+    renderStaffPage(page);
+  } else if (route === '/consumer') {
+    renderConsumerPage(page);
+  } else {
+    page.innerHTML = '<div class="page"><h1 class="page-title">404</h1><p class="page-subtitle">Page not found</p></div>';
+  }
+
+  renderGenie();
+}
+
+window.addEventListener('hashchange', function() { currentRoute = ''; render(); });
+window.addEventListener('DOMContentLoaded', render);
 
 // ═══════════════════════════════════════════════════════════════════
 // PAGE 1: EXECUTIVE INSIGHTS
 // ═══════════════════════════════════════════════════════════════════
-function ExecutiveInsights() {
-  const [hero, setHero] = useState(null);
-  const [regional, setRegional] = useState([]);
-  const [funnel, setFunnel] = useState([]);
-  const [modelComp, setModelComp] = useState([]);
-  const [sentiment, setSentiment] = useState(null);
-  const [loading, setLoading] = useState(true);
+async function renderInsightsPage(container) {
+  container.innerHTML = '<div class="page">' +
+    '<h1 class="page-title">Executive Insights</h1>' +
+    '<p class="page-subtitle">Real-time intelligence across all Lingyun operations</p>' +
+    spinnerHTML() +
+  '</div>';
 
-  useEffect(() => {
-    Promise.all([
-      api('/api/metrics/hero'),
-      api('/api/metrics/regional'),
-      api('/api/metrics/funnel'),
-      api('/api/metrics/model-comparison'),
-      api('/api/metrics/sentiment-trends'),
-    ]).then(([h, r, f, m, s]) => {
-      setHero(h); setRegional(r || []); setFunnel(f || []);
-      setModelComp(m || []); setSentiment(s);
-      setLoading(false);
-    });
-  }, []);
+  var results = await Promise.all([
+    api('/api/metrics/hero'),
+    api('/api/metrics/regional'),
+    api('/api/metrics/funnel'),
+    api('/api/metrics/model-comparison'),
+    api('/api/metrics/sentiment-trends')
+  ]);
 
-  if (loading) return <div className="page"><Spinner /></div>;
+  var hero = results[0];
+  var regional = results[1] || [];
+  var funnel = results[2] || [];
+  var modelComp = results[3] || [];
+  var sentiment = results[4];
 
-  const gmv = hero?.gmv || {};
-  const sent = hero?.sentiment || {};
-  const maxRevenue = regional.length ? Math.max(...regional.map(r => Number(r.revenue) || 0)) : 1;
+  var gmv = (hero && hero.gmv) || {};
+  var sent = (hero && hero.sentiment) || {};
 
-  // Prepare radar data
-  const radarData = modelComp.map(m => ({
-    model: (m.phone_model || '').replace('Lingyun ', ''),
-    price: Math.min(100, (Number(m.avg_price) || 0) / 16),
-    sales: Math.min(100, (Number(m.sales_volume) || 0) / (Math.max(...modelComp.map(x => Number(x.sales_volume) || 1)) / 100)),
-    satisfaction: (Number(m.avg_csat) || 0) * 20,
-    quality: Number(m.quality_score) || 0,
-  }));
+  // Hero cards
+  var html = '<div class="page fade-in">' +
+    '<h1 class="page-title">Executive Insights</h1>' +
+    '<p class="page-subtitle">Real-time intelligence across all Lingyun operations</p>' +
+    '<div class="hero-grid">' +
+      '<div class="hero-card blue slide-up">' +
+        '<div class="hero-label">Gross Merchandise Value</div>' +
+        '<div class="hero-value">' + fmt(gmv.total_gmv, '$') + '</div>' +
+        '<div class="hero-sub">' + fmt(gmv.total_orders) + ' orders from ' + fmt(gmv.unique_customers) + ' customers</div>' +
+      '</div>' +
+      '<div class="hero-card green slide-up" style="animation-delay:0.1s">' +
+        '<div class="hero-label">Avg Order Value</div>' +
+        '<div class="hero-value">' + fmt(gmv.avg_order_value, '$') + '</div>' +
+        '<div class="hero-sub">Per transaction average</div>' +
+      '</div>' +
+      '<div class="hero-card amber slide-up" style="animation-delay:0.2s">' +
+        '<div class="hero-label">Avg Sentiment</div>' +
+        '<div class="hero-value">' + Number(sent.avg_sentiment || 0).toFixed(2) + '</div>' +
+        '<div class="hero-sub">' + fmt(sent.total_tickets) + ' total tickets analyzed</div>' +
+      '</div>' +
+      '<div class="hero-card red slide-up" style="animation-delay:0.3s">' +
+        '<div class="hero-label">Open Tickets</div>' +
+        '<div class="hero-value">' + fmt(sent.open_tickets) + '</div>' +
+        '<div class="hero-sub">Requiring attention</div>' +
+      '</div>' +
+    '</div>';
 
-  // Radar needs to be transposed: axes are metrics, values are per model
-  const radarAxes = ['price', 'sales', 'satisfaction', 'quality'];
-  const radarLabels = { price: 'Price Value', sales: 'Sales Volume', satisfaction: 'Satisfaction', quality: 'Quality' };
-  const radarTransposed = radarAxes.map(axis => {
-    const entry = { axis: radarLabels[axis] };
-    radarData.forEach(m => { entry[m.model] = m[axis]; });
-    return entry;
-  });
-  const modelNames = radarData.map(m => m.model);
-  const radarColors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b'];
+  // Row 1: Regional + Funnel
+  var maxRevenue = regional.length ? Math.max.apply(null, regional.map(function(r) { return Number(r.revenue) || 0; })) : 1;
 
-  // Sentiment categories
-  const categories = sentiment?.categories || [];
-  const trends = sentiment?.trends || [];
-  // Group trends by model
-  const trendModels = [...new Set(trends.map(t => t.phone_model))];
-  const trendColors = ['#3b82f6', '#8b5cf6', '#10b981'];
-  const trendByDate = {};
-  trends.forEach(t => {
-    const d = t.date;
-    if (!trendByDate[d]) trendByDate[d] = { date: d };
-    trendByDate[d][t.phone_model] = Number(t.sentiment) || 0;
-  });
-  const trendData = Object.values(trendByDate).sort((a, b) => a.date < b.date ? -1 : 1);
+  // Regional table
+  var regionalRows = regional.slice(0, 10).map(function(r) {
+    var pct = ((Number(r.revenue) || 0) / maxRevenue) * 100;
+    var barColor = pct > 70 ? '#10b981' : pct > 40 ? '#3b82f6' : '#f59e0b';
+    return '<tr>' +
+      '<td style="font-weight:600">' + esc(r.region) + '</td>' +
+      '<td>' + esc(r.country) + '</td>' +
+      '<td>' + esc(String(r.orders)) + '</td>' +
+      '<td style="font-weight:600">' + fmt(r.revenue, '$') + '</td>' +
+      '<td style="min-width:120px"><div class="perf-bar-bg"><div class="perf-bar" style="width:' + pct + '%;background:' + barColor + '"></div></div></td>' +
+    '</tr>';
+  }).join('');
 
-  const sentimentColor = (val) => {
-    const v = Number(val) || 0;
+  html += '<div class="grid-2">' +
+    '<div class="section-card" style="animation-delay:0.2s">' +
+      '<div class="section-title"><span class="icon">\uD83C\uDF0D</span> Regional Performance</div>' +
+      '<div style="overflow-x:auto">' +
+        '<table class="data-table"><thead><tr>' +
+          '<th>Region</th><th>Country</th><th>Orders</th><th>Revenue</th><th>Performance</th>' +
+        '</tr></thead><tbody>' + regionalRows + '</tbody></table>' +
+      '</div>' +
+    '</div>';
+
+  // Order Funnel - CSS bar chart
+  var maxFunnel = funnel.length ? Math.max.apply(null, funnel.map(function(f) { return Number(f.count) || 0; })) : 1;
+  var funnelColors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'];
+  var funnelBars = funnel.map(function(f, i) {
+    var pct = ((Number(f.count) || 0) / maxFunnel) * 100;
+    var color = funnelColors[i % funnelColors.length];
+    return '<div class="bar-row">' +
+      '<div class="bar-label">' + esc(f.order_status) + '</div>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + Math.max(pct, 2) + '%;background:' + color + '">' + esc(String(f.count)) + '</div></div>' +
+    '</div>';
+  }).join('');
+
+  html += '<div class="section-card" style="animation-delay:0.3s">' +
+    '<div class="section-title"><span class="icon">\uD83D\uDCE6</span> Order Lifecycle</div>' +
+    '<div class="bar-chart" style="padding:10px 0">' + funnelBars + '</div>' +
+  '</div></div>';
+
+  // Row 2: Radar + Sentiment
+  html += '<div class="grid-2">';
+
+  // SVG Radar chart for model comparison
+  html += '<div class="section-card" style="animation-delay:0.4s">' +
+    '<div class="section-title"><span class="icon">\uD83D\uDCF1</span> Model Comparison</div>' +
+    buildRadarChart(modelComp) +
+  '</div>';
+
+  // Sentiment
+  var categories = (sentiment && sentiment.categories) || [];
+  var trends = (sentiment && sentiment.trends) || [];
+
+  function sentimentColor(val) {
+    var v = Number(val) || 0;
     if (v >= 0.6) return '#10b981';
     if (v >= 0.3) return '#f59e0b';
     return '#ef4444';
-  };
+  }
 
-  return (
-    <div className="page">
-      <h1 className="page-title">Executive Insights</h1>
-      <p className="page-subtitle">Real-time intelligence across all Lingyun operations</p>
+  var catBadges = categories.map(function(c) {
+    return '<div class="cat-badge"><div class="cat-dot" style="background:' + sentimentColor(c.avg_sentiment) + '"></div>' + esc(c.issue_category) + ' (' + c.count + ')</div>';
+  }).join('');
 
-      {/* Hero Metrics */}
-      <div className="hero-grid">
-        <div className="hero-card blue slide-up">
-          <div className="hero-label">Gross Merchandise Value</div>
-          <div className="hero-value">{fmt(gmv.total_gmv, '$')}</div>
-          <div className="hero-sub">{fmt(gmv.total_orders)} orders from {fmt(gmv.unique_customers)} customers</div>
-        </div>
-        <div className="hero-card green slide-up" style={{ animationDelay: '0.1s' }}>
-          <div className="hero-label">Avg Order Value</div>
-          <div className="hero-value">{fmt(gmv.avg_order_value, '$')}</div>
-          <div className="hero-sub">Per transaction average</div>
-        </div>
-        <div className="hero-card amber slide-up" style={{ animationDelay: '0.2s' }}>
-          <div className="hero-label">Avg Sentiment</div>
-          <div className="hero-value">{Number(sent.avg_sentiment || 0).toFixed(2)}</div>
-          <div className="hero-sub">{fmt(sent.total_tickets)} total tickets analyzed</div>
-        </div>
-        <div className="hero-card red slide-up" style={{ animationDelay: '0.3s' }}>
-          <div className="hero-label">Open Tickets</div>
-          <div className="hero-value">{fmt(sent.open_tickets)}</div>
-          <div className="hero-sub">Requiring attention</div>
-        </div>
-      </div>
+  // Group trends by model for mini visualization
+  var trendModels = [];
+  var trendModelSet = {};
+  trends.forEach(function(t) {
+    if (!trendModelSet[t.phone_model]) { trendModels.push(t.phone_model); trendModelSet[t.phone_model] = true; }
+  });
+  var trendColors = ['#3b82f6', '#8b5cf6', '#10b981'];
 
-      <div className="grid-2">
-        {/* Regional Heatmap Table */}
-        <div className="section-card" style={{ animationDelay: '0.2s' }}>
-          <div className="section-title"><span className="icon">{"\uD83C\uDF0D"}</span> Regional Performance</div>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="data-table">
-              <thead>
-                <tr><th>Region</th><th>Country</th><th>Orders</th><th>Revenue</th><th>Performance</th></tr>
-              </thead>
-              <tbody>
-                {regional.slice(0, 10).map((r, i) => {
-                  const pct = ((Number(r.revenue) || 0) / maxRevenue) * 100;
-                  const barColor = pct > 70 ? '#10b981' : pct > 40 ? '#3b82f6' : '#f59e0b';
-                  return (
-                    <tr key={i}>
-                      <td style={{ fontWeight: 600 }}>{r.region}</td>
-                      <td>{r.country}</td>
-                      <td>{r.orders}</td>
-                      <td style={{ fontWeight: 600 }}>{fmt(r.revenue, '$')}</td>
-                      <td style={{ minWidth: 120 }}>
-                        <div className="perf-bar-bg">
-                          <div className="perf-bar" style={{ width: `${pct}%`, background: barColor }}></div>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+  // Build a simple trend display: per-model bar lines
+  var trendHTML = '';
+  trendModels.forEach(function(model, mi) {
+    var modelTrends = trends.filter(function(t) { return t.phone_model === model; }).sort(function(a, b) { return a.date < b.date ? -1 : 1; });
+    if (modelTrends.length === 0) return;
+    var color = trendColors[mi % trendColors.length];
+    var bars = modelTrends.map(function(t) {
+      var val = Number(t.sentiment) || 0;
+      // Map -1..1 to 0..100
+      var h = ((val + 1) / 2) * 100;
+      return '<div class="trend-bar" style="height:' + Math.max(h, 3) + '%;background:' + color + ';opacity:0.8" title="' + esc(t.date) + ': ' + val.toFixed(2) + '"></div>';
+    }).join('');
+    var firstDate = modelTrends[0].date || '';
+    var lastDate = modelTrends[modelTrends.length - 1].date || '';
+    trendHTML += '<div style="margin-bottom:12px">' +
+      '<div style="font-size:12px;font-weight:600;color:' + color + ';margin-bottom:4px">' + esc(model) + '</div>' +
+      '<div class="trend-chart">' + bars + '</div>' +
+      '<div class="trend-labels"><span>' + esc(firstDate) + '</span><span>' + esc(lastDate) + '</span></div>' +
+    '</div>';
+  });
 
-        {/* Order Lifecycle Bar Chart */}
-        <div className="section-card" style={{ animationDelay: '0.3s' }}>
-          <div className="section-title"><span className="icon">{"\uD83D\uDCE6"}</span> Order Lifecycle</div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={funnel} layout="vertical" margin={{ left: 20, right: 20, top: 5, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis type="number" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-              <YAxis dataKey="order_status" type="category" tick={{ fill: '#d1d5db', fontSize: 11 }} width={100} />
-              <Tooltip
-                contentStyle={{ background: '#1f2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#f9fafb', fontSize: 12 }}
-              />
-              <Bar dataKey="count" radius={[0, 6, 6, 0]} fill="#3b82f6">
-                {funnel.map((_, i) => (
-                  <Cell key={i} fill={['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4'][i % 6]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+  html += '<div class="section-card" style="animation-delay:0.5s">' +
+    '<div class="section-title"><span class="icon">\uD83D\uDCAC</span> Sentiment Trends</div>' +
+    '<div style="display:flex;flex-wrap:wrap;margin-bottom:16px">' + catBadges + '</div>' +
+    trendHTML +
+  '</div>';
 
-      <div className="grid-2">
-        {/* Radar Chart */}
-        <div className="section-card" style={{ animationDelay: '0.4s' }}>
-          <div className="section-title"><span className="icon">{"\uD83D\uDCF1"}</span> Model Comparison</div>
-          <ResponsiveContainer width="100%" height={320}>
-            <RadarChart data={radarTransposed} cx="50%" cy="50%" outerRadius="70%">
-              <PolarGrid stroke="rgba(255,255,255,0.1)" />
-              <PolarAngleAxis dataKey="axis" tick={{ fill: '#d1d5db', fontSize: 11 }} />
-              <PolarRadiusAxis tick={{ fill: '#6b7280', fontSize: 10 }} angle={30} />
-              {modelNames.map((name, i) => (
-                <Radar key={name} name={name} dataKey={name}
-                  stroke={radarColors[i]} fill={radarColors[i]} fillOpacity={0.15} strokeWidth={2} />
-              ))}
-              <Legend wrapperStyle={{ fontSize: 12, color: '#d1d5db' }} />
-              <Tooltip contentStyle={{ background: '#1f2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#f9fafb', fontSize: 12 }} />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
+  html += '</div></div>';
+  container.innerHTML = html;
+}
 
-        {/* Sentiment Trends */}
-        <div className="section-card" style={{ animationDelay: '0.5s' }}>
-          <div className="section-title"><span className="icon">{"\uD83D\uDCAC"}</span> Sentiment Trends</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: 16 }}>
-            {categories.map((c, i) => (
-              <div className="cat-badge" key={i}>
-                <div className="cat-dot" style={{ background: sentimentColor(c.avg_sentiment) }}></div>
-                {c.issue_category} ({c.count})
-              </div>
-            ))}
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={trendData} margin={{ left: 0, right: 10, top: 5, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="date" tick={{ fill: '#9ca3af', fontSize: 10 }} />
-              <YAxis tick={{ fill: '#9ca3af', fontSize: 10 }} domain={[-1, 1]} />
-              <Tooltip contentStyle={{ background: '#1f2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#f9fafb', fontSize: 12 }} />
-              {trendModels.map((model, i) => (
-                <Line key={model} type="monotone" dataKey={model} stroke={trendColors[i % 3]}
-                  strokeWidth={2} dot={false} />
-              ))}
-              <Legend wrapperStyle={{ fontSize: 11, color: '#d1d5db' }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </div>
-  );
+// ── SVG Radar Chart Builder ──────────────────────────────────────
+function buildRadarChart(modelComp) {
+  if (!modelComp || modelComp.length === 0) {
+    return '<div style="color:#6b7280;text-align:center;padding:40px">No model data available</div>';
+  }
+
+  var axes = ['Price Value', 'Sales Volume', 'Satisfaction', 'Quality'];
+  var numAxes = axes.length;
+  var cx = 150, cy = 150, maxR = 110;
+  var radarColors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b'];
+
+  // Normalize data
+  var maxSales = Math.max.apply(null, modelComp.map(function(m) { return Number(m.sales_volume) || 1; }));
+  var models = modelComp.map(function(m) {
+    return {
+      name: (m.phone_model || '').replace('Lingyun ', ''),
+      values: [
+        Math.min(100, (Number(m.avg_price) || 0) / 16),
+        Math.min(100, (Number(m.sales_volume) || 0) / maxSales * 100),
+        (Number(m.avg_csat) || 0) * 20,
+        Number(m.quality_score) || 0
+      ]
+    };
+  });
+
+  // Build SVG
+  var svg = '<svg viewBox="0 0 300 300" style="width:100%;max-width:320px;margin:0 auto;display:block">';
+
+  // Draw grid rings
+  [0.25, 0.5, 0.75, 1.0].forEach(function(scale) {
+    var points = [];
+    for (var i = 0; i < numAxes; i++) {
+      var angle = (Math.PI * 2 * i / numAxes) - Math.PI / 2;
+      points.push((cx + maxR * scale * Math.cos(angle)).toFixed(1) + ',' + (cy + maxR * scale * Math.sin(angle)).toFixed(1));
+    }
+    svg += '<polygon points="' + points.join(' ') + '" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>';
+  });
+
+  // Draw axis lines and labels
+  for (var i = 0; i < numAxes; i++) {
+    var angle = (Math.PI * 2 * i / numAxes) - Math.PI / 2;
+    var x2 = cx + maxR * Math.cos(angle);
+    var y2 = cy + maxR * Math.sin(angle);
+    svg += '<line x1="' + cx + '" y1="' + cy + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>';
+    var lx = cx + (maxR + 18) * Math.cos(angle);
+    var ly = cy + (maxR + 18) * Math.sin(angle);
+    var anchor = 'middle';
+    if (Math.cos(angle) > 0.3) anchor = 'start';
+    if (Math.cos(angle) < -0.3) anchor = 'end';
+    svg += '<text x="' + lx.toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '" text-anchor="' + anchor + '" fill="#d1d5db" font-size="10">' + axes[i] + '</text>';
+  }
+
+  // Draw each model's polygon
+  models.forEach(function(model, mi) {
+    var pts = [];
+    for (var i = 0; i < numAxes; i++) {
+      var angle = (Math.PI * 2 * i / numAxes) - Math.PI / 2;
+      var r = maxR * (model.values[i] / 100);
+      pts.push((cx + r * Math.cos(angle)).toFixed(1) + ',' + (cy + r * Math.sin(angle)).toFixed(1));
+    }
+    var color = radarColors[mi % radarColors.length];
+    svg += '<polygon points="' + pts.join(' ') + '" fill="' + color + '" fill-opacity="0.12" stroke="' + color + '" stroke-width="2"/>';
+    // Draw dots at vertices
+    for (var i = 0; i < numAxes; i++) {
+      var angle = (Math.PI * 2 * i / numAxes) - Math.PI / 2;
+      var r = maxR * (model.values[i] / 100);
+      svg += '<circle cx="' + (cx + r * Math.cos(angle)).toFixed(1) + '" cy="' + (cy + r * Math.sin(angle)).toFixed(1) + '" r="3" fill="' + color + '"/>';
+    }
+  });
+
+  svg += '</svg>';
+
+  // Legend
+  var legend = '<div class="radar-legend">';
+  models.forEach(function(model, mi) {
+    legend += '<div class="radar-legend-item"><div class="radar-legend-dot" style="background:' + radarColors[mi % radarColors.length] + '"></div>' + esc(model.name) + '</div>';
+  });
+  legend += '</div>';
+
+  return '<div class="radar-container">' + svg + legend + '</div>';
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// PAGE 2: AI DECISION HUB
+// PAGE 2: STAFF AI HUB
 // ═══════════════════════════════════════════════════════════════════
-function DecisionHub() {
-  const [actions, setActions] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [context, setContext] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [ctxLoading, setCtxLoading] = useState(false);
-  const [notes, setNotes] = useState('');
-  const [toast, setToast] = useState('');
+var staffState = { actions: [], selectedId: null, context: null, notes: '' };
 
-  const loadActions = useCallback(async () => {
-    const data = await api('/api/actions');
-    setActions(data || []);
-    setLoading(false);
-  }, []);
+async function renderStaffPage(container) {
+  container.innerHTML = '<div class="page">' +
+    '<h1 class="page-title">Staff AI Hub</h1>' +
+    '<p class="page-subtitle">AI-powered action queue with intelligent recommendations</p>' +
+    spinnerHTML() +
+  '</div>';
 
-  useEffect(() => { loadActions(); }, [loadActions]);
+  var data = await api('/api/actions');
+  staffState.actions = data || [];
+  staffState.selectedId = null;
+  staffState.context = null;
+  staffState.notes = '';
+  renderStaffContent(container);
+}
 
-  const selectAction = async (item) => {
-    setSelected(item);
-    setContext(null);
-    setCtxLoading(true);
-    setNotes('');
-    const ctx = await api(`/api/actions/${item.action_id}/context`);
-    setContext(ctx);
-    setCtxLoading(false);
-  };
+function renderStaffContent(container) {
+  var actions = staffState.actions;
+  var selected = staffState.selectedId;
+  var context = staffState.context;
 
-  const updateAction = async (status) => {
-    await api(`/api/actions/${selected.action_id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action_id: selected.action_id, status, resolution_notes: notes || null }),
+  function priorityClass(p) { return 'badge badge-' + (p || 'medium').toLowerCase(); }
+  function statusClass(s) { return 'badge badge-status-' + (s || 'open').toLowerCase().replace(' ', '_'); }
+
+  var actionRows = actions.length === 0
+    ? '<p style="color:#6b7280;font-size:13px;padding:20px">No action items found.</p>'
+    : actions.map(function(item) {
+      var sel = selected === item.action_id ? ' selected' : '';
+      return '<div class="action-row' + sel + '" data-action-id="' + esc(String(item.action_id)) + '">' +
+        '<div class="action-title">' + esc(item.action_type) + ': ' + esc(item.customer_name) + '</div>' +
+        '<div class="action-desc">' + esc(item.action_description) + '</div>' +
+        '<div class="action-meta">' +
+          '<span class="' + priorityClass(item.priority) + '">' + esc(item.priority) + '</span>' +
+          '<span class="' + statusClass(item.status) + '">' + esc(item.status) + '</span>' +
+          '<span style="font-size:11px;color:#6b7280;margin-left:auto">' + esc(item.phone_model) + '</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+  // Right panel
+  var panelHTML = '';
+  if (!selected) {
+    panelHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:400px;color:#6b7280">' +
+      '<div style="font-size:48px;margin-bottom:16px">\uD83C\uDFAF</div>' +
+      '<p style="font-size:14px">Select an action item to view AI recommendations</p>' +
+    '</div>';
+  } else if (context === null) {
+    panelHTML = spinnerHTML();
+  } else if (context) {
+    var act = context.action || {};
+    var ordersHTML = '';
+    if (context.customer_orders && context.customer_orders.length > 0) {
+      var orderChips = context.customer_orders.slice(0, 5).map(function(o) {
+        return '<div class="glass-xs" style="padding:6px 12px;font-size:11px;background:rgba(255,255,255,0.04)">' +
+          esc(o.phone_model) + ' - ' + esc(o.order_status) + ' - ' + fmt(o.total_amount, '$') + '</div>';
+      }).join('');
+      ordersHTML = '<div style="margin-bottom:16px">' +
+        '<div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Order History</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap">' + orderChips + '</div></div>';
+    }
+
+    panelHTML = '<div class="fade-in">' +
+      '<div style="margin-bottom:16px">' +
+        '<h3 style="font-size:16px;font-weight:700;margin-bottom:4px">' + esc(act.action_type) + '</h3>' +
+        '<p style="font-size:13px;color:#9ca3af">' + esc(act.customer_name) + ' | ' + esc(act.phone_model) + '</p>' +
+        '<div class="action-meta" style="margin-top:8px">' +
+          '<span class="' + priorityClass(act.priority) + '">' + esc(act.priority) + '</span>' +
+          '<span class="' + statusClass(act.status) + '">' + esc(act.status) + '</span>' +
+          '<span style="font-size:11px;color:#6b7280">LTV: ' + fmt(act.customer_ltv, '$') + '</span>' +
+        '</div>' +
+      '</div>' +
+      ordersHTML +
+      '<div class="ai-rec-label">\u2728 AI Recommendation</div>' +
+      '<div class="ai-rec">' + esc(context.ai_recommendation) + '</div>' +
+      '<textarea class="textarea-dark" id="staff-notes" placeholder="Add resolution notes...">' + esc(staffState.notes) + '</textarea>' +
+      '<div class="btn-group">' +
+        '<button class="btn btn-primary" data-staff-action="IN_PROGRESS">\u25B6 Start Working</button>' +
+        '<button class="btn btn-success" data-staff-action="COMPLETED">\u2713 Mark Complete</button>' +
+        '<button class="btn btn-danger" data-staff-action="ESCALATED">\u26A0 Escalate</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  container.innerHTML = '<div class="page">' +
+    '<h1 class="page-title">Staff AI Hub</h1>' +
+    '<p class="page-subtitle">AI-powered action queue with intelligent recommendations</p>' +
+    '<div class="split-layout">' +
+      '<div class="section-card" style="max-height:700px;overflow-y:auto">' +
+        '<div class="section-title"><span class="icon">\uD83D\uDCCB</span> Action Queue (' + actions.length + ')</div>' +
+        actionRows +
+      '</div>' +
+      '<div class="section-card decision-panel">' + panelHTML + '</div>' +
+    '</div>' +
+  '</div>';
+
+  // Attach handlers
+  container.querySelectorAll('.action-row').forEach(function(row) {
+    row.addEventListener('click', function() {
+      var id = this.getAttribute('data-action-id');
+      selectStaffAction(id, container);
     });
-    setToast(`Action ${status.toLowerCase()} successfully`);
-    setSelected(null); setContext(null);
-    loadActions();
-  };
+  });
 
-  const priorityClass = (p) => `badge badge-${(p || 'medium').toLowerCase()}`;
-  const statusClass = (s) => `badge badge-status-${(s || 'open').toLowerCase()}`;
+  container.querySelectorAll('[data-staff-action]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var status = this.getAttribute('data-staff-action');
+      var notesEl = document.getElementById('staff-notes');
+      staffState.notes = notesEl ? notesEl.value : '';
+      updateStaffAction(status, container);
+    });
+  });
 
-  if (loading) return <div className="page"><Spinner /></div>;
+  var notesEl = document.getElementById('staff-notes');
+  if (notesEl) {
+    notesEl.addEventListener('input', function() { staffState.notes = this.value; });
+  }
+}
 
-  return (
-    <div className="page">
-      <h1 className="page-title">AI Decision Hub</h1>
-      <p className="page-subtitle">AI-powered action queue with intelligent recommendations</p>
-      {toast && <Toast message={toast} onClose={() => setToast('')} />}
+async function selectStaffAction(actionId, container) {
+  var item = staffState.actions.find(function(a) { return String(a.action_id) === String(actionId); });
+  if (!item) return;
+  staffState.selectedId = item.action_id;
+  staffState.context = null;
+  staffState.notes = '';
+  renderStaffContent(container);
 
-      <div className="split-layout">
-        {/* Left: Action Items */}
-        <div className="section-card" style={{ maxHeight: 700, overflowY: 'auto' }}>
-          <div className="section-title"><span className="icon">{"\uD83D\uDCCB"}</span> Action Queue ({actions.length})</div>
-          {actions.map(item => (
-            <div key={item.action_id}
-              className={`action-row ${selected?.action_id === item.action_id ? 'selected' : ''}`}
-              onClick={() => selectAction(item)}>
-              <div className="action-title">{item.action_type}: {item.customer_name}</div>
-              <div className="action-desc">{item.action_description}</div>
-              <div className="action-meta">
-                <span className={priorityClass(item.priority)}>{item.priority}</span>
-                <span className={statusClass(item.status)}>{item.status}</span>
-                <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>{item.phone_model}</span>
-              </div>
-            </div>
-          ))}
-          {actions.length === 0 && <p style={{ color: '#6b7280', fontSize: 13, padding: 20 }}>No action items found.</p>}
-        </div>
+  var ctx = await api('/api/actions/' + item.action_id + '/context');
+  staffState.context = ctx || false;
+  renderStaffContent(container);
+}
 
-        {/* Right: Decision Panel */}
-        <div className="section-card decision-panel">
-          {!selected ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 400, color: '#6b7280' }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>{"\uD83C\uDFAF"}</div>
-              <p style={{ fontSize: 14 }}>Select an action item to view AI recommendations</p>
-            </div>
-          ) : ctxLoading ? (
-            <Spinner />
-          ) : context ? (
-            <div className="fade-in">
-              <div style={{ marginBottom: 16 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{context.action?.action_type}</h3>
-                <p style={{ fontSize: 13, color: '#9ca3af' }}>{context.action?.customer_name} | {context.action?.phone_model}</p>
-                <div className="action-meta" style={{ marginTop: 8 }}>
-                  <span className={priorityClass(context.action?.priority)}>{context.action?.priority}</span>
-                  <span className={statusClass(context.action?.status)}>{context.action?.status}</span>
-                  <span style={{ fontSize: 11, color: '#6b7280' }}>LTV: {fmt(context.action?.customer_ltv, '$')}</span>
-                </div>
-              </div>
+async function updateStaffAction(status, container) {
+  if (!staffState.selectedId) return;
+  await api('/api/actions/' + staffState.selectedId, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action_id: staffState.selectedId, status: status, resolution_notes: staffState.notes || null })
+  });
+  showToast('Action ' + status.toLowerCase().replace('_', ' ') + ' successfully');
+  staffState.selectedId = null;
+  staffState.context = null;
+  staffState.notes = '';
 
-              {/* Customer History */}
-              {context.customer_orders?.length > 0 && (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Order History</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {context.customer_orders.slice(0, 5).map((o, i) => (
-                      <div key={i} className="glass-xs" style={{ padding: '6px 12px', fontSize: 11, background: 'rgba(255,255,255,0.04)' }}>
-                        {o.phone_model} - {o.order_status} - {fmt(o.total_amount, '$')}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* AI Recommendation */}
-              <div className="ai-rec-label">{"\u2728"} AI Recommendation</div>
-              <div className="ai-rec">{context.ai_recommendation}</div>
-
-              {/* Resolution Notes */}
-              <textarea className="textarea-dark" placeholder="Add resolution notes..."
-                value={notes} onChange={(e) => setNotes(e.target.value)} />
-
-              {/* Action Buttons */}
-              <div className="btn-group">
-                <button className="btn btn-primary" onClick={() => updateAction('IN_PROGRESS')}>
-                  {"\u25B6"} Start Working
-                </button>
-                <button className="btn btn-success" onClick={() => updateAction('COMPLETED')}>
-                  {"\u2713"} Mark Complete
-                </button>
-                <button className="btn btn-danger" onClick={() => updateAction('ESCALATED')}>
-                  {"\u26A0"} Escalate
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
+  var data = await api('/api/actions');
+  staffState.actions = data || [];
+  renderStaffContent(container);
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // PAGE 3: CONSUMER PORTAL
 // ═══════════════════════════════════════════════════════════════════
-function ConsumerPortal() {
-  const [tab, setTab] = useState('shop');
-  return (
-    <div className="page">
-      <h1 className="page-title">Consumer Portal</h1>
-      <p className="page-subtitle">Shop, support, and AI-powered assistance</p>
-      <div className="tab-bar">
-        <button className={`tab-btn ${tab === 'shop' ? 'active' : ''}`} onClick={() => setTab('shop')}>E-Shop</button>
-        <button className={`tab-btn ${tab === 'service' ? 'active' : ''}`} onClick={() => setTab('service')}>Service Center</button>
-        <button className={`tab-btn ${tab === 'chat' ? 'active' : ''}`} onClick={() => setTab('chat')}>AI Concierge</button>
-      </div>
-      {tab === 'shop' && <EShop />}
-      {tab === 'service' && <ServiceCenter />}
-      {tab === 'chat' && <AIConcierge />}
-    </div>
-  );
+var consumerTab = 'shop';
+
+function renderConsumerPage(container) {
+  var html = '<div class="page">' +
+    '<h1 class="page-title">Consumer Portal</h1>' +
+    '<p class="page-subtitle">Shop, support, and AI-powered assistance</p>' +
+    '<div class="tab-bar">' +
+      '<button class="tab-btn' + (consumerTab === 'shop' ? ' active' : '') + '" data-ctab="shop">E-Shop</button>' +
+      '<button class="tab-btn' + (consumerTab === 'service' ? ' active' : '') + '" data-ctab="service">Service Center</button>' +
+      '<button class="tab-btn' + (consumerTab === 'chat' ? ' active' : '') + '" data-ctab="chat">AI Concierge</button>' +
+    '</div>' +
+    '<div id="consumer-tab-content"></div>' +
+  '</div>';
+  container.innerHTML = html;
+
+  container.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      consumerTab = this.getAttribute('data-ctab');
+      renderConsumerPage(container);
+    });
+  });
+
+  var tabContent = document.getElementById('consumer-tab-content');
+  if (consumerTab === 'shop') renderShop(tabContent);
+  else if (consumerTab === 'service') renderServiceCenter(tabContent);
+  else if (consumerTab === 'chat') renderConcierge(tabContent);
 }
 
 // ── E-Shop ───────────────────────────────────────────────────────
-function EShop() {
-  const [modal, setModal] = useState(null);
-  const [toast, setToast] = useState('');
-  const [orderForm, setOrderForm] = useState({ customer_name: '', customer_email: '', variant: '' });
-  const [submitting, setSubmitting] = useState(false);
+var products = [
+  { id: 'lingyun-x1', name: 'Lingyun X1', tagline: 'Essential Excellence', price: 499, icon: '\uD83D\uDCF1',
+    variants: ['128GB Black', '128GB White', '256GB Black'], rating: 4.3,
+    features: ['6.1" OLED Display', '48MP Camera', '5000mAh Battery', '5G Ready'] },
+  { id: 'lingyun-pro', name: 'Lingyun Pro', tagline: 'Professional Power', price: 899, icon: '\uD83D\uDCF2',
+    variants: ['256GB Silver', '256GB Blue', '512GB Emerald'], rating: 4.6,
+    features: ['6.5" AMOLED 120Hz', '108MP Triple Camera', '4800mAh + 65W Charge', 'AI Photography'] },
+  { id: 'lingyun-ultra', name: 'Lingyun Ultra', tagline: 'Ultimate Innovation', price: 1299, icon: '\uD83D\uDE80',
+    variants: ['512GB Midnight', '512GB Pearl', '1TB Gold'], rating: 4.8,
+    features: ['6.8" LTPO AMOLED 144Hz', '200MP Quad Camera', '5500mAh + 120W', 'Lingyun AI Engine 3.0'] }
+];
 
-  const products = [
-    { id: 'lingyun-x1', name: 'Lingyun X1', tagline: 'Essential Excellence', price: 499, icon: '\uD83D\uDCF1',
-      variants: ['128GB Black', '128GB White', '256GB Black'], rating: 4.3,
-      features: ['6.1" OLED Display', '48MP Camera', '5000mAh Battery', '5G Ready'] },
-    { id: 'lingyun-pro', name: 'Lingyun Pro', tagline: 'Professional Power', price: 899, icon: '\uD83D\uDCF2',
-      variants: ['256GB Silver', '256GB Blue', '512GB Emerald'], rating: 4.6,
-      features: ['6.5" AMOLED 120Hz', '108MP Triple Camera', '4800mAh + 65W Charge', 'AI Photography'] },
-    { id: 'lingyun-ultra', name: 'Lingyun Ultra', tagline: 'Ultimate Innovation', price: 1299, icon: '\uD83D\uDE80',
-      variants: ['512GB Midnight', '512GB Pearl', '1TB Gold'], rating: 4.8,
-      features: ['6.8" LTPO AMOLED 144Hz', '200MP Quad Camera', '5500mAh + 120W', 'Lingyun AI Engine 3.0'] },
-  ];
+function renderShop(container) {
+  var cards = products.map(function(p, i) {
+    var stars = '\u2605'.repeat(Math.floor(p.rating)) + '\u2606'.repeat(5 - Math.floor(p.rating));
+    var features = p.features.map(function(f) { return '<li>' + esc(f) + '</li>'; }).join('');
+    return '<div class="product-card slide-up" style="animation-delay:' + (i * 0.1) + 's">' +
+      '<div class="product-icon">' + p.icon + '</div>' +
+      '<div class="product-name">' + esc(p.name) + '</div>' +
+      '<div class="product-tagline">' + esc(p.tagline) + '</div>' +
+      '<div class="product-rating">' + stars + ' ' + p.rating + '</div>' +
+      '<div class="product-price">$' + p.price + '</div>' +
+      '<ul class="product-features">' + features + '</ul>' +
+      '<button class="btn btn-primary" style="width:100%;justify-content:center" data-buy="' + i + '">Buy Now</button>' +
+    '</div>';
+  }).join('');
 
-  const placeOrder = async () => {
-    if (!orderForm.customer_name || !orderForm.customer_email || !orderForm.variant) return;
-    setSubmitting(true);
-    const res = await api('/api/orders', {
+  container.innerHTML = '<div class="grid-3">' + cards + '</div>';
+
+  container.querySelectorAll('[data-buy]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var idx = parseInt(this.getAttribute('data-buy'));
+      showOrderModal(products[idx]);
+    });
+  });
+}
+
+function showOrderModal(product) {
+  // Remove existing modal
+  var existing = document.querySelector('.modal-overlay');
+  if (existing) existing.remove();
+
+  var variantOpts = product.variants.map(function(v) {
+    return '<option value="' + esc(v) + '">' + esc(v) + '</option>';
+  }).join('');
+
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = '<div class="modal-content">' +
+    '<div class="modal-title">Order ' + esc(product.name) + '</div>' +
+    '<div class="form-group">' +
+      '<label class="form-label">Full Name</label>' +
+      '<input class="form-input" id="order-name" placeholder="Enter your name">' +
+    '</div>' +
+    '<div class="form-group">' +
+      '<label class="form-label">Email</label>' +
+      '<input class="form-input" id="order-email" type="email" placeholder="you@example.com">' +
+    '</div>' +
+    '<div class="form-group">' +
+      '<label class="form-label">Variant</label>' +
+      '<select class="product-select" id="order-variant">' + variantOpts + '</select>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px">' +
+      '<span style="font-size:22px;font-weight:800;color:#3b82f6">$' + product.price + '</span>' +
+      '<div style="display:flex;gap:8px">' +
+        '<button class="btn btn-ghost" id="order-cancel">Cancel</button>' +
+        '<button class="btn btn-primary" id="order-submit">Place Order</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  document.getElementById('order-cancel').addEventListener('click', function() { overlay.remove(); });
+
+  document.getElementById('order-submit').addEventListener('click', async function() {
+    var name = document.getElementById('order-name').value;
+    var email = document.getElementById('order-email').value;
+    var variant = document.getElementById('order-variant').value;
+    if (!name || !email || !variant) return;
+
+    var btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner spinner-sm"></span>';
+
+    var res = await api('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        customer_name: orderForm.customer_name,
-        customer_email: orderForm.customer_email,
-        phone_model: modal.name,
-        variant: orderForm.variant,
+        customer_name: name,
+        customer_email: email,
+        phone_model: product.name,
+        variant: variant,
         quantity: 1,
         payment_method: 'Credit Card',
         channel: 'Online',
-        region: 'Asia-Pacific',
-      }),
+        region: 'Asia-Pacific'
+      })
     });
-    setSubmitting(false);
-    setModal(null);
-    if (res) setToast(`Order ${res.order_id} placed! Total: $${res.total}`);
-    setOrderForm({ customer_name: '', customer_email: '', variant: '' });
-  };
 
-  return (
-    <>
-      {toast && <Toast message={toast} onClose={() => setToast('')} />}
-      <div className="grid-3">
-        {products.map((p, i) => (
-          <div className="product-card slide-up" key={p.id} style={{ animationDelay: `${i * 0.1}s` }}>
-            <div className="product-icon">{p.icon}</div>
-            <div className="product-name">{p.name}</div>
-            <div className="product-tagline">{p.tagline}</div>
-            <div className="product-rating">{'★'.repeat(Math.floor(p.rating))}{'☆'.repeat(5 - Math.floor(p.rating))} {p.rating}</div>
-            <div className="product-price">${p.price}</div>
-            <ul className="product-features">
-              {p.features.map((f, j) => <li key={j}>{f}</li>)}
-            </ul>
-            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}
-              onClick={() => { setModal(p); setOrderForm({ customer_name: '', customer_email: '', variant: p.variants[0] }); }}>
-              Buy Now
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Order Modal */}
-      {modal && (
-        <div className="modal-overlay" onClick={() => setModal(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">Order {modal.name}</div>
-            <div className="form-group">
-              <label className="form-label">Full Name</label>
-              <input className="form-input" placeholder="Enter your name"
-                value={orderForm.customer_name} onChange={e => setOrderForm({...orderForm, customer_name: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Email</label>
-              <input className="form-input" type="email" placeholder="you@example.com"
-                value={orderForm.customer_email} onChange={e => setOrderForm({...orderForm, customer_email: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Variant</label>
-              <select className="product-select"
-                value={orderForm.variant} onChange={e => setOrderForm({...orderForm, variant: e.target.value})}>
-                {modal.variants.map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 }}>
-              <span style={{ fontSize: 22, fontWeight: 800, color: '#3b82f6' }}>${modal.price}</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button>
-                <button className="btn btn-primary" onClick={placeOrder} disabled={submitting}>
-                  {submitting ? <span className="spinner" style={{ width: 16, height: 16 }}></span> : 'Place Order'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
+    overlay.remove();
+    if (res) showToast('Order ' + res.order_id + ' placed! Total: $' + res.total);
+  });
 }
 
 // ── Service Center ───────────────────────────────────────────────
-function ServiceCenter() {
-  const [form, setForm] = useState({ order_id: '', customer_name: '', phone_model: 'Lingyun X1', issue_category: 'Hardware Malfunction', issue_description: '', priority: 'MEDIUM' });
-  const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState('');
+function renderServiceCenter(container) {
+  var issueCategories = ['Hardware Malfunction', 'Software Bug', 'Battery Issue', 'Screen Damage', 'Network Problem', 'Camera Issue', 'Delivery Problem', 'Other'];
+  var catOptions = issueCategories.map(function(c) { return '<option>' + esc(c) + '</option>'; }).join('');
 
-  const categories = ['Hardware Malfunction', 'Software Bug', 'Battery Issue', 'Screen Damage', 'Network Problem', 'Camera Issue', 'Delivery Problem', 'Other'];
+  container.innerHTML = '<div style="max-width:600px">' +
+    '<div class="section-card">' +
+      '<div class="section-title"><span class="icon">\uD83C\uDD98</span> Submit Support Ticket</div>' +
+      '<div class="grid-2" style="margin-bottom:0;gap:16px">' +
+        '<div class="form-group"><label class="form-label">Order ID</label><input class="form-input" id="svc-order-id" placeholder="ORD-XXXXXXXX"></div>' +
+        '<div class="form-group"><label class="form-label">Your Name</label><input class="form-input" id="svc-name" placeholder="Full name"></div>' +
+      '</div>' +
+      '<div class="grid-2" style="margin-bottom:0;gap:16px">' +
+        '<div class="form-group"><label class="form-label">Phone Model</label>' +
+          '<select class="product-select" id="svc-model" style="margin-bottom:0"><option>Lingyun X1</option><option>Lingyun Pro</option><option>Lingyun Ultra</option></select></div>' +
+        '<div class="form-group"><label class="form-label">Issue Category</label>' +
+          '<select class="product-select" id="svc-category" style="margin-bottom:0">' + catOptions + '</select></div>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label class="form-label">Priority</label>' +
+        '<div style="display:flex;gap:8px" id="svc-priority-group">' +
+          '<button class="badge badge-low" data-priority="LOW" style="cursor:pointer;opacity:0.4">LOW</button>' +
+          '<button class="badge badge-medium" data-priority="MEDIUM" style="cursor:pointer;opacity:1">MEDIUM</button>' +
+          '<button class="badge badge-high" data-priority="HIGH" style="cursor:pointer;opacity:0.4">HIGH</button>' +
+          '<button class="badge badge-critical" data-priority="CRITICAL" style="cursor:pointer;opacity:0.4">CRITICAL</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label class="form-label">Issue Description</label>' +
+        '<textarea class="textarea-dark" id="svc-desc" placeholder="Describe your issue in detail..." style="margin-top:0"></textarea>' +
+      '</div>' +
+      '<button class="btn btn-primary" id="svc-submit" style="margin-top:8px">Submit Ticket</button>' +
+    '</div>' +
+  '</div>';
 
-  const submit = async () => {
-    if (!form.order_id || !form.customer_name || !form.issue_description) return;
-    setSubmitting(true);
-    const res = await api('/api/tickets', {
+  var currentPriority = 'MEDIUM';
+
+  document.getElementById('svc-priority-group').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-priority]');
+    if (!btn) return;
+    currentPriority = btn.getAttribute('data-priority');
+    this.querySelectorAll('[data-priority]').forEach(function(b) {
+      b.style.opacity = b.getAttribute('data-priority') === currentPriority ? '1' : '0.4';
+    });
+  });
+
+  document.getElementById('svc-submit').addEventListener('click', async function() {
+    var orderId = document.getElementById('svc-order-id').value;
+    var name = document.getElementById('svc-name').value;
+    var desc = document.getElementById('svc-desc').value;
+    if (!orderId || !name || !desc) return;
+
+    var btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner spinner-sm"></span>';
+
+    var res = await api('/api/tickets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        order_id: orderId,
+        customer_name: name,
+        phone_model: document.getElementById('svc-model').value,
+        issue_category: document.getElementById('svc-category').value,
+        issue_description: desc,
+        priority: currentPriority
+      })
     });
-    setSubmitting(false);
-    if (res) {
-      setToast(`Ticket ${res.ticket_id} created!`);
-      setForm({ order_id: '', customer_name: '', phone_model: 'Lingyun X1', issue_category: 'Hardware Malfunction', issue_description: '', priority: 'MEDIUM' });
-    }
-  };
 
-  return (
-    <>
-      {toast && <Toast message={toast} onClose={() => setToast('')} />}
-      <div style={{ maxWidth: 600 }}>
-        <div className="section-card">
-          <div className="section-title"><span className="icon">{"\uD83C\uDD98"}</span> Submit Support Ticket</div>
-          <div className="grid-2" style={{ marginBottom: 0, gap: 16 }}>
-            <div className="form-group">
-              <label className="form-label">Order ID</label>
-              <input className="form-input" placeholder="ORD-XXXXXXXX"
-                value={form.order_id} onChange={e => setForm({...form, order_id: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Your Name</label>
-              <input className="form-input" placeholder="Full name"
-                value={form.customer_name} onChange={e => setForm({...form, customer_name: e.target.value})} />
-            </div>
-          </div>
-          <div className="grid-2" style={{ marginBottom: 0, gap: 16 }}>
-            <div className="form-group">
-              <label className="form-label">Phone Model</label>
-              <select className="product-select" style={{ marginBottom: 0 }}
-                value={form.phone_model} onChange={e => setForm({...form, phone_model: e.target.value})}>
-                <option>Lingyun X1</option>
-                <option>Lingyun Pro</option>
-                <option>Lingyun Ultra</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Issue Category</label>
-              <select className="product-select" style={{ marginBottom: 0 }}
-                value={form.issue_category} onChange={e => setForm({...form, issue_category: e.target.value})}>
-                {categories.map(c => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Priority</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map(p => (
-                <button key={p}
-                  className={`badge badge-${p.toLowerCase()}`}
-                  style={{ cursor: 'pointer', opacity: form.priority === p ? 1 : 0.4, transition: 'opacity 0.2s' }}
-                  onClick={() => setForm({...form, priority: p})}>
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Issue Description</label>
-            <textarea className="textarea-dark" placeholder="Describe your issue in detail..."
-              value={form.issue_description} onChange={e => setForm({...form, issue_description: e.target.value})}
-              style={{ marginTop: 0 }} />
-          </div>
-          <button className="btn btn-primary" onClick={submit} disabled={submitting} style={{ marginTop: 8 }}>
-            {submitting ? <span className="spinner" style={{ width: 16, height: 16 }}></span> : 'Submit Ticket'}
-          </button>
-        </div>
-      </div>
-    </>
-  );
+    btn.disabled = false;
+    btn.textContent = 'Submit Ticket';
+    if (res) {
+      showToast('Ticket ' + res.ticket_id + ' created!');
+      document.getElementById('svc-order-id').value = '';
+      document.getElementById('svc-name').value = '';
+      document.getElementById('svc-desc').value = '';
+    }
+  });
 }
 
 // ── AI Concierge ─────────────────────────────────────────────────
-function AIConcierge() {
-  const [messages, setMessages] = useState([
-    { role: 'ai', text: 'Welcome to Lingyun AI Concierge! I can help you with order tracking, product recommendations, technical support, and more. How can I assist you today?' }
-  ]);
-  const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
-  const messagesEnd = useRef(null);
+var conciergeMessages = [
+  { role: 'ai', text: 'Welcome to Lingyun AI Concierge! I can help you with order tracking, product recommendations, technical support, and more. How can I assist you today?' }
+];
 
-  useEffect(() => { messagesEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+function renderConcierge(container) {
+  var msgsHTML = conciergeMessages.map(function(m) {
+    return '<div class="chat-bubble ' + m.role + '">' + esc(m.text) + '</div>';
+  }).join('');
 
-  const send = async () => {
-    if (!input.trim() || sending) return;
-    const msg = input.trim();
-    setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: msg }]);
-    setSending(true);
-    const res = await api('/api/chat', {
+  container.innerHTML = '<div class="chat-container">' +
+    '<div class="chat-messages" id="concierge-messages">' + msgsHTML + '</div>' +
+    '<div class="chat-input-row">' +
+      '<input class="chat-input" id="concierge-input" placeholder="Ask me anything about Lingyun phones...">' +
+      '<button class="btn btn-primary" id="concierge-send">Send</button>' +
+    '</div>' +
+  '</div>';
+
+  var msgsContainer = document.getElementById('concierge-messages');
+  msgsContainer.scrollTop = msgsContainer.scrollHeight;
+
+  var sendFn = async function() {
+    var input = document.getElementById('concierge-input');
+    var msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+
+    conciergeMessages.push({ role: 'user', text: msg });
+
+    // Add user bubble + typing indicator
+    var userBubble = document.createElement('div');
+    userBubble.className = 'chat-bubble user';
+    userBubble.textContent = msg;
+    msgsContainer.appendChild(userBubble);
+
+    var typing = document.createElement('div');
+    typing.className = 'chat-bubble ai';
+    typing.innerHTML = '<span class="spinner" style="width:14px;height:14px"></span> Thinking...';
+    msgsContainer.appendChild(typing);
+    msgsContainer.scrollTop = msgsContainer.scrollHeight;
+
+    var res = await api('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: msg }),
+      body: JSON.stringify({ message: msg })
     });
-    setSending(false);
-    setMessages(prev => [...prev, { role: 'ai', text: res?.response || 'Sorry, I encountered an error. Please try again.' }]);
+
+    var reply = (res && res.response) || 'Sorry, I encountered an error. Please try again.';
+    conciergeMessages.push({ role: 'ai', text: reply });
+
+    typing.innerHTML = esc(reply);
+    msgsContainer.scrollTop = msgsContainer.scrollHeight;
   };
 
-  return (
-    <div className="chat-container">
-      <div className="chat-messages">
-        {messages.map((m, i) => (
-          <div key={i} className={`chat-bubble ${m.role}`}>{m.text}</div>
-        ))}
-        {sending && (
-          <div className="chat-bubble ai" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div className="spinner" style={{ width: 14, height: 14 }}></div> Thinking...
-          </div>
-        )}
-        <div ref={messagesEnd} />
-      </div>
-      <div className="chat-input-row">
-        <input className="chat-input" placeholder="Ask me anything about Lingyun phones..."
-          value={input} onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && send()} />
-        <button className="btn btn-primary" onClick={send} disabled={sending}>Send</button>
-      </div>
-    </div>
-  );
+  document.getElementById('concierge-send').addEventListener('click', sendFn);
+  document.getElementById('concierge-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') sendFn();
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // GENIE FLOATING ASSISTANT
 // ═══════════════════════════════════════════════════════════════════
-function Genie() {
-  const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
-  const bodyRef = useRef(null);
+var genieOpen = false;
+var genieMessages = [];
 
-  useEffect(() => { bodyRef.current?.scrollTo(0, bodyRef.current.scrollHeight); }, [messages]);
+function renderGenie() {
+  // Remove existing
+  var existingFab = document.getElementById('genie-fab');
+  var existingPanel = document.getElementById('genie-panel-el');
+  if (existingFab) existingFab.remove();
+  if (existingPanel) existingPanel.remove();
 
-  const ask = async () => {
-    if (!input.trim() || sending) return;
-    const q = input.trim();
-    setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: q }]);
-    setSending(true);
-    const res = await api('/api/genie/query', {
+  // Floating button
+  var fab = document.createElement('button');
+  fab.className = 'genie-fab';
+  fab.id = 'genie-fab';
+  fab.textContent = genieOpen ? '\u2715' : '\u2728';
+  fab.addEventListener('click', function() {
+    genieOpen = !genieOpen;
+    renderGenie();
+  });
+  document.body.appendChild(fab);
+
+  if (!genieOpen) return;
+
+  var panel = document.createElement('div');
+  panel.className = 'genie-panel';
+  panel.id = 'genie-panel-el';
+
+  var msgsHTML = '';
+  if (genieMessages.length === 0) {
+    msgsHTML = '<div style="text-align:center;color:#6b7280;padding:20px;font-size:13px">' +
+      '<div style="font-size:32px;margin-bottom:8px">\u2728</div>' +
+      'Try: "What is our total revenue by region?" or "Which phone model has the most complaints?"' +
+    '</div>';
+  } else {
+    msgsHTML = genieMessages.map(function(m) {
+      var html = '<div><div class="chat-bubble ' + m.role + '">' + esc(m.text) + '</div>';
+      if (m.sql) {
+        html += '<div class="genie-sql"><details><summary>View Generated SQL</summary><pre>' + esc(m.sql) + '</pre></details></div>';
+      }
+      html += '</div>';
+      return html;
+    }).join('');
+  }
+
+  panel.innerHTML = '<div class="genie-header">' +
+    '<div class="genie-header-icon">\u2728</div>' +
+    '<div class="genie-header-text"><h3>Data Genie</h3><p>Ask anything about your business data</p></div>' +
+    '<button id="genie-close" style="margin-left:auto;background:none;color:#9ca3af;font-size:18px">\u2715</button>' +
+  '</div>' +
+  '<div class="genie-body" id="genie-body">' + msgsHTML + '</div>' +
+  '<div class="genie-footer"><div class="genie-input-row">' +
+    '<input class="chat-input" id="genie-input" placeholder="Ask a business question...">' +
+    '<button class="btn btn-primary" id="genie-ask">Ask</button>' +
+  '</div></div>';
+
+  document.body.appendChild(panel);
+
+  var body = document.getElementById('genie-body');
+  body.scrollTop = body.scrollHeight;
+
+  document.getElementById('genie-close').addEventListener('click', function() {
+    genieOpen = false;
+    renderGenie();
+  });
+
+  var askFn = async function() {
+    var input = document.getElementById('genie-input');
+    var q = input.value.trim();
+    if (!q) return;
+    input.value = '';
+
+    genieMessages.push({ role: 'user', text: q });
+    var userBubble = document.createElement('div');
+    userBubble.innerHTML = '<div class="chat-bubble user">' + esc(q) + '</div>';
+    body.appendChild(userBubble);
+
+    var typing = document.createElement('div');
+    typing.className = 'chat-bubble ai';
+    typing.innerHTML = '<span class="spinner" style="width:14px;height:14px"></span> Querying data...';
+    body.appendChild(typing);
+    body.scrollTop = body.scrollHeight;
+
+    var res = await api('/api/genie/query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: q }),
+      body: JSON.stringify({ question: q })
     });
-    setSending(false);
+
     if (res) {
-      setMessages(prev => [...prev, { role: 'ai', text: res.answer || 'No answer available.', sql: res.sql, results: res.results }]);
+      var answer = res.answer || 'No answer available.';
+      genieMessages.push({ role: 'ai', text: answer, sql: res.sql, results: res.results });
+      var replyHTML = '<div class="chat-bubble ai">' + esc(answer) + '</div>';
+      if (res.sql) {
+        replyHTML += '<div class="genie-sql"><details><summary>View Generated SQL</summary><pre>' + esc(res.sql) + '</pre></details></div>';
+      }
+      typing.outerHTML = '<div>' + replyHTML + '</div>';
     } else {
-      setMessages(prev => [...prev, { role: 'ai', text: 'Sorry, something went wrong.' }]);
+      genieMessages.push({ role: 'ai', text: 'Sorry, something went wrong.' });
+      typing.innerHTML = esc('Sorry, something went wrong.');
     }
+    body.scrollTop = body.scrollHeight;
   };
 
-  return (
-    <>
-      {open && (
-        <div className="genie-panel">
-          <div className="genie-header">
-            <div className="genie-header-icon">{"\u2728"}</div>
-            <div className="genie-header-text">
-              <h3>Data Genie</h3>
-              <p>Ask anything about your business data</p>
-            </div>
-            <button onClick={() => setOpen(false)} style={{ marginLeft: 'auto', background: 'none', color: '#9ca3af', fontSize: 18 }}>{"\u2715"}</button>
-          </div>
-          <div className="genie-body" ref={bodyRef}>
-            {messages.length === 0 && (
-              <div style={{ textAlign: 'center', color: '#6b7280', padding: 20, fontSize: 13 }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>{"\u2728"}</div>
-                Try: "What is our total revenue by region?" or "Which phone model has the most complaints?"
-              </div>
-            )}
-            {messages.map((m, i) => (
-              <div key={i}>
-                <div className={`chat-bubble ${m.role}`}>{m.text}</div>
-                {m.sql && (
-                  <div className="genie-sql">
-                    <details>
-                      <summary>View Generated SQL</summary>
-                      <pre>{m.sql}</pre>
-                    </details>
-                  </div>
-                )}
-              </div>
-            ))}
-            {sending && (
-              <div className="chat-bubble ai" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div className="spinner" style={{ width: 14, height: 14 }}></div> Querying data...
-              </div>
-            )}
-          </div>
-          <div className="genie-footer">
-            <div className="genie-input-row">
-              <input className="chat-input" placeholder="Ask a business question..."
-                value={input} onChange={e => setInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && ask()} />
-              <button className="btn btn-primary" onClick={ask} disabled={sending}>Ask</button>
-            </div>
-          </div>
-        </div>
-      )}
-      <button className="genie-fab" onClick={() => setOpen(!open)}>
-        {open ? '\u2715' : '\u2728'}
-      </button>
-    </>
-  );
+  document.getElementById('genie-ask').addEventListener('click', askFn);
+  document.getElementById('genie-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') askFn();
+  });
 }
-
-// ═══════════════════════════════════════════════════════════════════
-// APP ROOT
-// ═══════════════════════════════════════════════════════════════════
-function App() {
-  return (
-    <HashRouter>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<ExecutiveInsights />} />
-        <Route path="/decisions" element={<DecisionHub />} />
-        <Route path="/portal" element={<ConsumerPortal />} />
-      </Routes>
-      <Genie />
-    </HashRouter>
-  );
-}
-
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
 </script>
 </body>
 </html>
