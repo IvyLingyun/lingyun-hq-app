@@ -1,0 +1,25 @@
+command:
+  - uvicorn
+  - backend.main:app
+  - --host
+  - 0.0.0.0
+  - --port
+  - 8000
+
+env:
+  - name: DATABRICKS_WAREHOUSE_ID
+    value: "4b9b953939869799"
+  - name: CATALOG
+    value: "lingyun_demo"
+  - name: SCHEMA
+    value: "default"
+
+resources:
+  - name: sql-warehouse
+    sql_warehouse:
+      id: "4b9b953939869799"
+      permission: CAN_USE
+  - name: serving-endpoint
+    serving_endpoint:
+      name: "databricks-meta-llama-3-3-70b-instruct"
+      permission: CAN_QUERY

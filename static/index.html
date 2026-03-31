@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lingyun Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+/* ── Reset & Base ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; width: 100%; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #030712; color: #f9fafb; overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; font-family: inherit; border: none; outline: none; }
+input, textarea, select { font-family: inherit; outline: none; }
+
+/* ── Animations ────────────────────────────────────────────────── */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes glow { 0%, 100% { box-shadow: 0 0 8px rgba(59,130,246,0.4); } 50% { box-shadow: 0 0 20px rgba(59,130,246,0.7); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+.fade-in { animation: fadeIn 0.5s ease-out; }
+.slide-up { animation: slideUp 0.6s ease-out both; }
+.pulse { animation: pulse 2s infinite; }
+
+/* ── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+/* ── Glass Effect Base ─────────────────────────────────────────── */
+.glass {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+}
+.glass-sm { border-radius: 12px; }
+.glass-xs { border-radius: 8px; }
+
+/* ── Navbar ────────────────────────────────────────────────────── */
+.navbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px; height: 64px;
+  background: rgba(3,7,18,0.85);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.navbar-left { display: flex; align-items: center; gap: 14px; }
+.logo-box {
+  width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  font-size: 20px; font-weight: 800; color: #fff;
+}
+.navbar-title { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+.nav-tabs { display: flex; gap: 4px; }
+.nav-tab {
+  padding: 8px 20px; border-radius: 8px;
+  font-size: 13px; font-weight: 500; color: #9ca3af;
+  background: transparent; transition: all 0.2s;
+}
+.nav-tab:hover { color: #f9fafb; background: rgba(255,255,255,0.06); }
+.nav-tab.active { color: #f9fafb; background: rgba(59,130,246,0.15); }
+.live-dot {
+  display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280;
+}
+.live-dot::before {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: #10b981; box-shadow: 0 0 8px #10b981;
+  animation: pulse 2s infinite;
+}
+
+/* ── Page Container ────────────────────────────────────────────── */
+.page { padding: 28px 32px 120px; max-width: 1440px; margin: 0 auto; animation: fadeIn 0.4s ease-out; }
+.page-title { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+.page-subtitle { font-size: 14px; color: #6b7280; margin-bottom: 28px; }
+
+/* ── Hero Cards ────────────────────────────────────────────────── */
+.hero-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 28px; }
+.hero-card {
+  padding: 24px; border-radius: 16px; position: relative; overflow: hidden;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.hero-card:hover { transform: translateY(-4px); }
+.hero-card.blue { box-shadow: 0 0 30px rgba(59,130,246,0.12), inset 0 1px 0 rgba(59,130,246,0.2); }
+.hero-card.green { box-shadow: 0 0 30px rgba(16,185,129,0.12), inset 0 1px 0 rgba(16,185,129,0.2); }
+.hero-card.amber { box-shadow: 0 0 30px rgba(245,158,11,0.12), inset 0 1px 0 rgba(245,158,11,0.2); }
+.hero-card.red { box-shadow: 0 0 30px rgba(239,68,68,0.12), inset 0 1px 0 rgba(239,68,68,0.2); }
+.hero-label { font-size: 12px; font-weight: 500; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.hero-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; }
+.hero-sub { font-size: 12px; color: #6b7280; margin-top: 4px; }
+
+/* ── Section Grid ──────────────────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 28px; }
+.section-card {
+  padding: 24px; border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  animation: slideUp 0.6s ease-out both;
+}
+.section-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.section-title .icon { font-size: 18px; }
+
+/* ── Tables ────────────────────────────────────────────────────── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th {
+  text-align: left; padding: 10px 12px; font-weight: 600; color: #9ca3af;
+  border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.data-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.data-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+/* ── Performance Bar ───────────────────────────────────────────── */
+.perf-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; }
+.perf-bar { height: 100%; border-radius: 3px; transition: width 1s ease-out; }
+
+/* ── Badges ────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 6px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.badge-critical { background: #7f1d1d; color: #fca5a5; }
+.badge-high { background: #78350f; color: #fbbf24; }
+.badge-medium { background: #1e3a5f; color: #93c5fd; }
+.badge-low { background: #14532d; color: #86efac; }
+.badge-status-open { background: rgba(59,130,246,0.15); color: #93c5fd; }
+.badge-status-pending { background: rgba(245,158,11,0.15); color: #fbbf24; }
+.badge-status-working { background: rgba(139,92,246,0.15); color: #c4b5fd; }
+.badge-status-completed { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+.badge-status-escalated { background: rgba(239,68,68,0.15); color: #fca5a5; }
+
+/* ── Category Badge (sentiment) ────────────────────────────────── */
+.cat-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  margin: 4px;
+}
+.cat-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ── Decision Panel ────────────────────────────────────────────── */
+.split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.action-row {
+  padding: 14px 16px; border-radius: 10px; cursor: pointer;
+  border: 1px solid transparent; transition: all 0.2s;
+}
+.action-row:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+.action-row.selected { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.3); }
+.action-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.action-desc { font-size: 12px; color: #9ca3af; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.action-meta { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
+.decision-panel { padding: 24px; }
+.ai-rec {
+  padding: 16px; border-radius: 12px;
+  background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.2);
+  font-size: 13px; line-height: 1.7; white-space: pre-wrap; max-height: 300px; overflow-y: auto;
+}
+.ai-rec-label { font-size: 11px; font-weight: 600; color: #a78bfa; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.btn-group { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.btn {
+  padding: 9px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-primary { background: #3b82f6; color: #fff; }
+.btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+.btn-success { background: #10b981; color: #fff; }
+.btn-success:hover { background: #059669; transform: translateY(-1px); }
+.btn-danger { background: #ef4444; color: #fff; }
+.btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
+.btn-ghost { background: rgba(255,255,255,0.06); color: #d1d5db; border: 1px solid rgba(255,255,255,0.1); }
+.btn-ghost:hover { background: rgba(255,255,255,0.1); }
+.textarea-dark {
+  width: 100%; padding: 12px 14px; border-radius: 10px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  color: #f9fafb; font-size: 13px; resize: vertical; min-height: 80px;
+  margin-top: 12px; transition: border-color 0.2s;
+}
+.textarea-dark:focus { border-color: rgba(59,130,246,0.5); }
+.textarea-dark::placeholder { color: #6b7280; }
+
+/* ── Consumer Portal ───────────────────────────────────────────── */
+.tab-bar { display: flex; gap: 4px; margin-bottom: 24px; padding: 4px; background: rgba(255,255,255,0.04); border-radius: 12px; width: fit-content; }
+.tab-btn {
+  padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  color: #9ca3af; background: transparent; transition: all 0.2s;
+}
+.tab-btn.active { background: rgba(59,130,246,0.15); color: #f9fafb; }
+.tab-btn:hover:not(.active) { color: #d1d5db; }
+
+.product-card {
+  padding: 28px; border-radius: 16px; text-align: center;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.product-card:hover { transform: translateY(-6px); box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.product-icon { font-size: 64px; margin-bottom: 16px; }
+.product-name { font-size: 20px; font-weight: 800; }
+.product-tagline { font-size: 13px; color: #6b7280; margin: 4px 0 12px; }
+.product-price { font-size: 28px; font-weight: 800; color: #3b82f6; margin-bottom: 16px; }
+.product-features { list-style: none; text-align: left; margin-bottom: 20px; }
+.product-features li { font-size: 13px; color: #d1d5db; padding: 4px 0; display: flex; align-items: center; gap: 8px; }
+.product-features li::before { content: "\2713"; color: #10b981; font-weight: 700; }
+.product-rating { color: #fbbf24; font-size: 14px; margin-bottom: 16px; }
+.product-select { width: 100%; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #f9fafb; font-size: 13px; margin-bottom: 12px; }
+.product-select option { background: #1f2937; }
+
+/* ── Forms ──────────────────────────────────────────────────────── */
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 12px; font-weight: 600; color: #9ca3af; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+.form-input {
+  width: 100%; padding: 10px 14px; border-radius: 8px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  color: #f9fafb; font-size: 13px; transition: border-color 0.2s;
+}
+.form-input:focus { border-color: rgba(59,130,246,0.5); }
+.form-input::placeholder { color: #4b5563; }
+
+/* ── Chat ──────────────────────────────────────────────────────── */
+.chat-container {
+  display: flex; flex-direction: column; height: 500px; border-radius: 16px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); overflow: hidden;
+}
+.chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.chat-bubble {
+  max-width: 75%; padding: 12px 16px; border-radius: 14px; font-size: 13px; line-height: 1.6;
+  animation: slideUp 0.3s ease-out;
+}
+.chat-bubble.user { background: #3b82f6; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+.chat-bubble.ai { background: rgba(255,255,255,0.08); color: #f9fafb; align-self: flex-start; border-bottom-left-radius: 4px; }
+.chat-input-row { display: flex; gap: 8px; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+.chat-input {
+  flex: 1; padding: 12px 16px; border-radius: 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  color: #f9fafb; font-size: 13px;
+}
+.chat-input:focus { border-color: rgba(59,130,246,0.5); }
+.chat-input::placeholder { color: #6b7280; }
+
+/* ── Genie Floating Button ─────────────────────────────────────── */
+.genie-fab {
+  position: fixed; bottom: 28px; right: 28px; z-index: 200;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 32px rgba(139,92,246,0.4);
+  transition: transform 0.3s, box-shadow 0.3s;
+  font-size: 24px; color: #fff;
+}
+.genie-fab:hover { transform: scale(1.1); box-shadow: 0 12px 40px rgba(139,92,246,0.6); }
+
+.genie-panel {
+  position: fixed; bottom: 96px; right: 28px; z-index: 200;
+  width: 400px; max-height: 520px; border-radius: 20px;
+  background: rgba(15,23,42,0.95); backdrop-filter: blur(24px);
+  border: 1px solid rgba(139,92,246,0.3);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+.genie-header {
+  padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; gap: 10px;
+}
+.genie-header-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.genie-header-text h3 { font-size: 14px; font-weight: 700; }
+.genie-header-text p { font-size: 11px; color: #6b7280; }
+.genie-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 200px; }
+.genie-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+.genie-input-row { display: flex; gap: 8px; }
+.genie-sql {
+  margin-top: 8px; font-size: 11px; color: #9ca3af;
+}
+.genie-sql summary { cursor: pointer; font-weight: 600; color: #a78bfa; }
+.genie-sql pre {
+  margin-top: 6px; padding: 10px; border-radius: 8px;
+  background: rgba(0,0,0,0.3); font-size: 11px; overflow-x: auto; white-space: pre-wrap;
+  color: #d1d5db; font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+/* ── Loading ───────────────────────────────────────────────────── */
+.spinner {
+  width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.1);
+  border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.6s linear infinite;
+  display: inline-block;
+}
+.loading-center { display: flex; align-items: center; justify-content: center; padding: 40px; }
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px;
+}
+
+/* ── Order Modal ───────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+.modal-content {
+  width: 420px; max-width: 90vw; padding: 28px; border-radius: 20px;
+  background: rgba(15,23,42,0.97); backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  animation: slideUp 0.3s ease-out;
+}
+.modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+
+/* ── Success Toast ─────────────────────────────────────────────── */
+.toast {
+  position: fixed; top: 80px; right: 32px; z-index: 400;
+  padding: 14px 24px; border-radius: 12px;
+  background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3);
+  color: #6ee7b7; font-size: 13px; font-weight: 600;
+  animation: slideUp 0.3s ease-out;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .hero-grid { grid-template-columns: repeat(2, 1fr); }
+  .grid-2, .split-layout { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .genie-panel { width: calc(100vw - 32px); right: 16px; }
+}
+@media (max-width: 640px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .navbar { padding: 0 16px; }
+  .page { padding: 20px 16px 120px; }
+  .nav-tabs { display: none; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-router-dom@6.20.0/dist/umd/react-router-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel" data-type="module">
+/* ══════════════════════════════════════════════════════════════════
+   Lingyun Command Center - Single-File React Frontend
+   ══════════════════════════════════════════════════════════════════ */
+const { useState, useEffect, useRef, useCallback } = React;
+const { HashRouter, Routes, Route, useNavigate, useLocation } = ReactRouterDOM;
+const {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  LineChart, Line, Legend, Cell
+} = Recharts;
+
+// ── Helpers ──────────────────────────────────────────────────────
+const fmt = (n, prefix = '') => {
+  if (n == null || isNaN(Number(n))) return '--';
+  const num = Number(n);
+  if (num >= 1e6) return prefix + (num / 1e6).toFixed(2) + 'M';
+  if (num >= 1e3) return prefix + (num / 1e3).toFixed(1) + 'K';
+  return prefix + num.toFixed(num % 1 === 0 ? 0 : 2);
+};
+
+async function api(path, opts) {
+  try {
+    const res = await fetch(path, opts);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    console.error(`API ${path}:`, e);
+    return null;
+  }
+}
+
+// ── Spinner Component ────────────────────────────────────────────
+function Spinner() { return <div className="loading-center"><div className="spinner"></div></div>; }
+
+// ── Toast Component ──────────────────────────────────────────────
+function Toast({ message, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
+  return <div className="toast">{"\u2713"} {message}</div>;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NAVBAR
+// ═══════════════════════════════════════════════════════════════════
+const NAV_ITEMS = [
+  { path: '/', label: 'Executive Insights' },
+  { path: '/decisions', label: 'AI Decision Hub' },
+  { path: '/portal', label: 'Consumer Portal' },
+];
+
+function Navbar() {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  return (
+    <nav className="navbar">
+      <div className="navbar-left">
+        <div className="logo-box">{"\u51CC"}</div>
+        <span className="navbar-title">Lingyun Command Center</span>
+      </div>
+      <div className="nav-tabs">
+        {NAV_ITEMS.map(item => (
+          <button key={item.path}
+            className={`nav-tab ${pathname === item.path ? 'active' : ''}`}
+            onClick={() => navigate(item.path)}>
+            {item.label}
+          </button>
+        ))}
+      </div>
+      <div className="live-dot">System Online</div>
+    </nav>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PAGE 1: EXECUTIVE INSIGHTS
+// ═══════════════════════════════════════════════════════════════════
+function ExecutiveInsights() {
+  const [hero, setHero] = useState(null);
+  const [regional, setRegional] = useState([]);
+  const [funnel, setFunnel] = useState([]);
+  const [modelComp, setModelComp] = useState([]);
+  const [sentiment, setSentiment] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      api('/api/metrics/hero'),
+      api('/api/metrics/regional'),
+      api('/api/metrics/funnel'),
+      api('/api/metrics/model-comparison'),
+      api('/api/metrics/sentiment-trends'),
+    ]).then(([h, r, f, m, s]) => {
+      setHero(h); setRegional(r || []); setFunnel(f || []);
+      setModelComp(m || []); setSentiment(s);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) return <div className="page"><Spinner /></div>;
+
+  const gmv = hero?.gmv || {};
+  const sent = hero?.sentiment || {};
+  const maxRevenue = regional.length ? Math.max(...regional.map(r => Number(r.revenue) || 0)) : 1;
+
+  // Prepare radar data
+  const radarData = modelComp.map(m => ({
+    model: (m.phone_model || '').replace('Lingyun ', ''),
+    price: Math.min(100, (Number(m.avg_price) || 0) / 16),
+    sales: Math.min(100, (Number(m.sales_volume) || 0) / (Math.max(...modelComp.map(x => Number(x.sales_volume) || 1)) / 100)),
+    satisfaction: (Number(m.avg_csat) || 0) * 20,
+    quality: Number(m.quality_score) || 0,
+  }));
+
+  // Radar needs to be transposed: axes are metrics, values are per model
+  const radarAxes = ['price', 'sales', 'satisfaction', 'quality'];
+  const radarLabels = { price: 'Price Value', sales: 'Sales Volume', satisfaction: 'Satisfaction', quality: 'Quality' };
+  const radarTransposed = radarAxes.map(axis => {
+    const entry = { axis: radarLabels[axis] };
+    radarData.forEach(m => { entry[m.model] = m[axis]; });
+    return entry;
+  });
+  const modelNames = radarData.map(m => m.model);
+  const radarColors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b'];
+
+  // Sentiment categories
+  const categories = sentiment?.categories || [];
+  const trends = sentiment?.trends || [];
+  // Group trends by model
+  const trendModels = [...new Set(trends.map(t => t.phone_model))];
+  const trendColors = ['#3b82f6', '#8b5cf6', '#10b981'];
+  const trendByDate = {};
+  trends.forEach(t => {
+    const d = t.date;
+    if (!trendByDate[d]) trendByDate[d] = { date: d };
+    trendByDate[d][t.phone_model] = Number(t.sentiment) || 0;
+  });
+  const trendData = Object.values(trendByDate).sort((a, b) => a.date < b.date ? -1 : 1);
+
+  const sentimentColor = (val) => {
+    const v = Number(val) || 0;
+    if (v >= 0.6) return '#10b981';
+    if (v >= 0.3) return '#f59e0b';
+    return '#ef4444';
+  };
+
+  return (
+    <div className="page">
+      <h1 className="page-title">Executive Insights</h1>
+      <p className="page-subtitle">Real-time intelligence across all Lingyun operations</p>
+
+      {/* Hero Metrics */}
+      <div className="hero-grid">
+        <div className="hero-card blue slide-up">
+          <div className="hero-label">Gross Merchandise Value</div>
+          <div className="hero-value">{fmt(gmv.total_gmv, '$')}</div>
+          <div className="hero-sub">{fmt(gmv.total_orders)} orders from {fmt(gmv.unique_customers)} customers</div>
+        </div>
+        <div className="hero-card green slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="hero-label">Avg Order Value</div>
+          <div className="hero-value">{fmt(gmv.avg_order_value, '$')}</div>
+          <div className="hero-sub">Per transaction average</div>
+        </div>
+        <div className="hero-card amber slide-up" style={{ animationDelay: '0.2s' }}>
+          <div className="hero-label">Avg Sentiment</div>
+          <div className="hero-value">{Number(sent.avg_sentiment || 0).toFixed(2)}</div>
+          <div className="hero-sub">{fmt(sent.total_tickets)} total tickets analyzed</div>
+        </div>
+        <div className="hero-card red slide-up" style={{ animationDelay: '0.3s' }}>
+          <div className="hero-label">Open Tickets</div>
+          <div className="hero-value">{fmt(sent.open_tickets)}</div>
+          <div className="hero-sub">Requiring attention</div>
+        </div>
+      </div>
+
+      <div className="grid-2">
+        {/* Regional Heatmap Table */}
+        <div className="section-card" style={{ animationDelay: '0.2s' }}>
+          <div className="section-title"><span className="icon">{"\uD83C\uDF0D"}</span> Regional Performance</div>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead>
+                <tr><th>Region</th><th>Country</th><th>Orders</th><th>Revenue</th><th>Performance</th></tr>
+              </thead>
+              <tbody>
+                {regional.slice(0, 10).map((r, i) => {
+                  const pct = ((Number(r.revenue) || 0) / maxRevenue) * 100;
+                  const barColor = pct > 70 ? '#10b981' : pct > 40 ? '#3b82f6' : '#f59e0b';
+                  return (
+                    <tr key={i}>
+                      <td style={{ fontWeight: 600 }}>{r.region}</td>
+                      <td>{r.country}</td>
+                      <td>{r.orders}</td>
+                      <td style={{ fontWeight: 600 }}>{fmt(r.revenue, '$')}</td>
+                      <td style={{ minWidth: 120 }}>
+                        <div className="perf-bar-bg">
+                          <div className="perf-bar" style={{ width: `${pct}%`, background: barColor }}></div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Order Lifecycle Bar Chart */}
+        <div className="section-card" style={{ animationDelay: '0.3s' }}>
+          <div className="section-title"><span className="icon">{"\uD83D\uDCE6"}</span> Order Lifecycle</div>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={funnel} layout="vertical" margin={{ left: 20, right: 20, top: 5, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <XAxis type="number" tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <YAxis dataKey="order_status" type="category" tick={{ fill: '#d1d5db', fontSize: 11 }} width={100} />
+              <Tooltip
+                contentStyle={{ background: '#1f2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#f9fafb', fontSize: 12 }}
+              />
+              <Bar dataKey="count" radius={[0, 6, 6, 0]} fill="#3b82f6">
+                {funnel.map((_, i) => (
+                  <Cell key={i} fill={['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4'][i % 6]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="grid-2">
+        {/* Radar Chart */}
+        <div className="section-card" style={{ animationDelay: '0.4s' }}>
+          <div className="section-title"><span className="icon">{"\uD83D\uDCF1"}</span> Model Comparison</div>
+          <ResponsiveContainer width="100%" height={320}>
+            <RadarChart data={radarTransposed} cx="50%" cy="50%" outerRadius="70%">
+              <PolarGrid stroke="rgba(255,255,255,0.1)" />
+              <PolarAngleAxis dataKey="axis" tick={{ fill: '#d1d5db', fontSize: 11 }} />
+              <PolarRadiusAxis tick={{ fill: '#6b7280', fontSize: 10 }} angle={30} />
+              {modelNames.map((name, i) => (
+                <Radar key={name} name={name} dataKey={name}
+                  stroke={radarColors[i]} fill={radarColors[i]} fillOpacity={0.15} strokeWidth={2} />
+              ))}
+              <Legend wrapperStyle={{ fontSize: 12, color: '#d1d5db' }} />
+              <Tooltip contentStyle={{ background: '#1f2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#f9fafb', fontSize: 12 }} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Sentiment Trends */}
+        <div className="section-card" style={{ animationDelay: '0.5s' }}>
+          <div className="section-title"><span className="icon">{"\uD83D\uDCAC"}</span> Sentiment Trends</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: 16 }}>
+            {categories.map((c, i) => (
+              <div className="cat-badge" key={i}>
+                <div className="cat-dot" style={{ background: sentimentColor(c.avg_sentiment) }}></div>
+                {c.issue_category} ({c.count})
+              </div>
+            ))}
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={trendData} margin={{ left: 0, right: 10, top: 5, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <XAxis dataKey="date" tick={{ fill: '#9ca3af', fontSize: 10 }} />
+              <YAxis tick={{ fill: '#9ca3af', fontSize: 10 }} domain={[-1, 1]} />
+              <Tooltip contentStyle={{ background: '#1f2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#f9fafb', fontSize: 12 }} />
+              {trendModels.map((model, i) => (
+                <Line key={model} type="monotone" dataKey={model} stroke={trendColors[i % 3]}
+                  strokeWidth={2} dot={false} />
+              ))}
+              <Legend wrapperStyle={{ fontSize: 11, color: '#d1d5db' }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PAGE 2: AI DECISION HUB
+// ═══════════════════════════════════════════════════════════════════
+function DecisionHub() {
+  const [actions, setActions] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [context, setContext] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [ctxLoading, setCtxLoading] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [toast, setToast] = useState('');
+
+  const loadActions = useCallback(async () => {
+    const data = await api('/api/actions');
+    setActions(data || []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadActions(); }, [loadActions]);
+
+  const selectAction = async (item) => {
+    setSelected(item);
+    setContext(null);
+    setCtxLoading(true);
+    setNotes('');
+    const ctx = await api(`/api/actions/${item.action_id}/context`);
+    setContext(ctx);
+    setCtxLoading(false);
+  };
+
+  const updateAction = async (status) => {
+    await api(`/api/actions/${selected.action_id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action_id: selected.action_id, status, resolution_notes: notes || null }),
+    });
+    setToast(`Action ${status.toLowerCase()} successfully`);
+    setSelected(null); setContext(null);
+    loadActions();
+  };
+
+  const priorityClass = (p) => `badge badge-${(p || 'medium').toLowerCase()}`;
+  const statusClass = (s) => `badge badge-status-${(s || 'open').toLowerCase()}`;
+
+  if (loading) return <div className="page"><Spinner /></div>;
+
+  return (
+    <div className="page">
+      <h1 className="page-title">AI Decision Hub</h1>
+      <p className="page-subtitle">AI-powered action queue with intelligent recommendations</p>
+      {toast && <Toast message={toast} onClose={() => setToast('')} />}
+
+      <div className="split-layout">
+        {/* Left: Action Items */}
+        <div className="section-card" style={{ maxHeight: 700, overflowY: 'auto' }}>
+          <div className="section-title"><span className="icon">{"\uD83D\uDCCB"}</span> Action Queue ({actions.length})</div>
+          {actions.map(item => (
+            <div key={item.action_id}
+              className={`action-row ${selected?.action_id === item.action_id ? 'selected' : ''}`}
+              onClick={() => selectAction(item)}>
+              <div className="action-title">{item.action_type}: {item.customer_name}</div>
+              <div className="action-desc">{item.action_description}</div>
+              <div className="action-meta">
+                <span className={priorityClass(item.priority)}>{item.priority}</span>
+                <span className={statusClass(item.status)}>{item.status}</span>
+                <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>{item.phone_model}</span>
+              </div>
+            </div>
+          ))}
+          {actions.length === 0 && <p style={{ color: '#6b7280', fontSize: 13, padding: 20 }}>No action items found.</p>}
+        </div>
+
+        {/* Right: Decision Panel */}
+        <div className="section-card decision-panel">
+          {!selected ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 400, color: '#6b7280' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>{"\uD83C\uDFAF"}</div>
+              <p style={{ fontSize: 14 }}>Select an action item to view AI recommendations</p>
+            </div>
+          ) : ctxLoading ? (
+            <Spinner />
+          ) : context ? (
+            <div className="fade-in">
+              <div style={{ marginBottom: 16 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{context.action?.action_type}</h3>
+                <p style={{ fontSize: 13, color: '#9ca3af' }}>{context.action?.customer_name} | {context.action?.phone_model}</p>
+                <div className="action-meta" style={{ marginTop: 8 }}>
+                  <span className={priorityClass(context.action?.priority)}>{context.action?.priority}</span>
+                  <span className={statusClass(context.action?.status)}>{context.action?.status}</span>
+                  <span style={{ fontSize: 11, color: '#6b7280' }}>LTV: {fmt(context.action?.customer_ltv, '$')}</span>
+                </div>
+              </div>
+
+              {/* Customer History */}
+              {context.customer_orders?.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Order History</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {context.customer_orders.slice(0, 5).map((o, i) => (
+                      <div key={i} className="glass-xs" style={{ padding: '6px 12px', fontSize: 11, background: 'rgba(255,255,255,0.04)' }}>
+                        {o.phone_model} - {o.order_status} - {fmt(o.total_amount, '$')}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* AI Recommendation */}
+              <div className="ai-rec-label">{"\u2728"} AI Recommendation</div>
+              <div className="ai-rec">{context.ai_recommendation}</div>
+
+              {/* Resolution Notes */}
+              <textarea className="textarea-dark" placeholder="Add resolution notes..."
+                value={notes} onChange={(e) => setNotes(e.target.value)} />
+
+              {/* Action Buttons */}
+              <div className="btn-group">
+                <button className="btn btn-primary" onClick={() => updateAction('IN_PROGRESS')}>
+                  {"\u25B6"} Start Working
+                </button>
+                <button className="btn btn-success" onClick={() => updateAction('COMPLETED')}>
+                  {"\u2713"} Mark Complete
+                </button>
+                <button className="btn btn-danger" onClick={() => updateAction('ESCALATED')}>
+                  {"\u26A0"} Escalate
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PAGE 3: CONSUMER PORTAL
+// ═══════════════════════════════════════════════════════════════════
+function ConsumerPortal() {
+  const [tab, setTab] = useState('shop');
+  return (
+    <div className="page">
+      <h1 className="page-title">Consumer Portal</h1>
+      <p className="page-subtitle">Shop, support, and AI-powered assistance</p>
+      <div className="tab-bar">
+        <button className={`tab-btn ${tab === 'shop' ? 'active' : ''}`} onClick={() => setTab('shop')}>E-Shop</button>
+        <button className={`tab-btn ${tab === 'service' ? 'active' : ''}`} onClick={() => setTab('service')}>Service Center</button>
+        <button className={`tab-btn ${tab === 'chat' ? 'active' : ''}`} onClick={() => setTab('chat')}>AI Concierge</button>
+      </div>
+      {tab === 'shop' && <EShop />}
+      {tab === 'service' && <ServiceCenter />}
+      {tab === 'chat' && <AIConcierge />}
+    </div>
+  );
+}
+
+// ── E-Shop ───────────────────────────────────────────────────────
+function EShop() {
+  const [modal, setModal] = useState(null);
+  const [toast, setToast] = useState('');
+  const [orderForm, setOrderForm] = useState({ customer_name: '', customer_email: '', variant: '' });
+  const [submitting, setSubmitting] = useState(false);
+
+  const products = [
+    { id: 'lingyun-x1', name: 'Lingyun X1', tagline: 'Essential Excellence', price: 499, icon: '\uD83D\uDCF1',
+      variants: ['128GB Black', '128GB White', '256GB Black'], rating: 4.3,
+      features: ['6.1" OLED Display', '48MP Camera', '5000mAh Battery', '5G Ready'] },
+    { id: 'lingyun-pro', name: 'Lingyun Pro', tagline: 'Professional Power', price: 899, icon: '\uD83D\uDCF2',
+      variants: ['256GB Silver', '256GB Blue', '512GB Emerald'], rating: 4.6,
+      features: ['6.5" AMOLED 120Hz', '108MP Triple Camera', '4800mAh + 65W Charge', 'AI Photography'] },
+    { id: 'lingyun-ultra', name: 'Lingyun Ultra', tagline: 'Ultimate Innovation', price: 1299, icon: '\uD83D\uDE80',
+      variants: ['512GB Midnight', '512GB Pearl', '1TB Gold'], rating: 4.8,
+      features: ['6.8" LTPO AMOLED 144Hz', '200MP Quad Camera', '5500mAh + 120W', 'Lingyun AI Engine 3.0'] },
+  ];
+
+  const placeOrder = async () => {
+    if (!orderForm.customer_name || !orderForm.customer_email || !orderForm.variant) return;
+    setSubmitting(true);
+    const res = await api('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer_name: orderForm.customer_name,
+        customer_email: orderForm.customer_email,
+        phone_model: modal.name,
+        variant: orderForm.variant,
+        quantity: 1,
+        payment_method: 'Credit Card',
+        channel: 'Online',
+        region: 'Asia-Pacific',
+      }),
+    });
+    setSubmitting(false);
+    setModal(null);
+    if (res) setToast(`Order ${res.order_id} placed! Total: $${res.total}`);
+    setOrderForm({ customer_name: '', customer_email: '', variant: '' });
+  };
+
+  return (
+    <>
+      {toast && <Toast message={toast} onClose={() => setToast('')} />}
+      <div className="grid-3">
+        {products.map((p, i) => (
+          <div className="product-card slide-up" key={p.id} style={{ animationDelay: `${i * 0.1}s` }}>
+            <div className="product-icon">{p.icon}</div>
+            <div className="product-name">{p.name}</div>
+            <div className="product-tagline">{p.tagline}</div>
+            <div className="product-rating">{'★'.repeat(Math.floor(p.rating))}{'☆'.repeat(5 - Math.floor(p.rating))} {p.rating}</div>
+            <div className="product-price">${p.price}</div>
+            <ul className="product-features">
+              {p.features.map((f, j) => <li key={j}>{f}</li>)}
+            </ul>
+            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}
+              onClick={() => { setModal(p); setOrderForm({ customer_name: '', customer_email: '', variant: p.variants[0] }); }}>
+              Buy Now
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Order Modal */}
+      {modal && (
+        <div className="modal-overlay" onClick={() => setModal(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">Order {modal.name}</div>
+            <div className="form-group">
+              <label className="form-label">Full Name</label>
+              <input className="form-input" placeholder="Enter your name"
+                value={orderForm.customer_name} onChange={e => setOrderForm({...orderForm, customer_name: e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Email</label>
+              <input className="form-input" type="email" placeholder="you@example.com"
+                value={orderForm.customer_email} onChange={e => setOrderForm({...orderForm, customer_email: e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Variant</label>
+              <select className="product-select"
+                value={orderForm.variant} onChange={e => setOrderForm({...orderForm, variant: e.target.value})}>
+                {modal.variants.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 }}>
+              <span style={{ fontSize: 22, fontWeight: 800, color: '#3b82f6' }}>${modal.price}</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button>
+                <button className="btn btn-primary" onClick={placeOrder} disabled={submitting}>
+                  {submitting ? <span className="spinner" style={{ width: 16, height: 16 }}></span> : 'Place Order'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Service Center ───────────────────────────────────────────────
+function ServiceCenter() {
+  const [form, setForm] = useState({ order_id: '', customer_name: '', phone_model: 'Lingyun X1', issue_category: 'Hardware Malfunction', issue_description: '', priority: 'MEDIUM' });
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState('');
+
+  const categories = ['Hardware Malfunction', 'Software Bug', 'Battery Issue', 'Screen Damage', 'Network Problem', 'Camera Issue', 'Delivery Problem', 'Other'];
+
+  const submit = async () => {
+    if (!form.order_id || !form.customer_name || !form.issue_description) return;
+    setSubmitting(true);
+    const res = await api('/api/tickets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    setSubmitting(false);
+    if (res) {
+      setToast(`Ticket ${res.ticket_id} created!`);
+      setForm({ order_id: '', customer_name: '', phone_model: 'Lingyun X1', issue_category: 'Hardware Malfunction', issue_description: '', priority: 'MEDIUM' });
+    }
+  };
+
+  return (
+    <>
+      {toast && <Toast message={toast} onClose={() => setToast('')} />}
+      <div style={{ maxWidth: 600 }}>
+        <div className="section-card">
+          <div className="section-title"><span className="icon">{"\uD83C\uDD98"}</span> Submit Support Ticket</div>
+          <div className="grid-2" style={{ marginBottom: 0, gap: 16 }}>
+            <div className="form-group">
+              <label className="form-label">Order ID</label>
+              <input className="form-input" placeholder="ORD-XXXXXXXX"
+                value={form.order_id} onChange={e => setForm({...form, order_id: e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Your Name</label>
+              <input className="form-input" placeholder="Full name"
+                value={form.customer_name} onChange={e => setForm({...form, customer_name: e.target.value})} />
+            </div>
+          </div>
+          <div className="grid-2" style={{ marginBottom: 0, gap: 16 }}>
+            <div className="form-group">
+              <label className="form-label">Phone Model</label>
+              <select className="product-select" style={{ marginBottom: 0 }}
+                value={form.phone_model} onChange={e => setForm({...form, phone_model: e.target.value})}>
+                <option>Lingyun X1</option>
+                <option>Lingyun Pro</option>
+                <option>Lingyun Ultra</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Issue Category</label>
+              <select className="product-select" style={{ marginBottom: 0 }}
+                value={form.issue_category} onChange={e => setForm({...form, issue_category: e.target.value})}>
+                {categories.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Priority</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map(p => (
+                <button key={p}
+                  className={`badge badge-${p.toLowerCase()}`}
+                  style={{ cursor: 'pointer', opacity: form.priority === p ? 1 : 0.4, transition: 'opacity 0.2s' }}
+                  onClick={() => setForm({...form, priority: p})}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Issue Description</label>
+            <textarea className="textarea-dark" placeholder="Describe your issue in detail..."
+              value={form.issue_description} onChange={e => setForm({...form, issue_description: e.target.value})}
+              style={{ marginTop: 0 }} />
+          </div>
+          <button className="btn btn-primary" onClick={submit} disabled={submitting} style={{ marginTop: 8 }}>
+            {submitting ? <span className="spinner" style={{ width: 16, height: 16 }}></span> : 'Submit Ticket'}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── AI Concierge ─────────────────────────────────────────────────
+function AIConcierge() {
+  const [messages, setMessages] = useState([
+    { role: 'ai', text: 'Welcome to Lingyun AI Concierge! I can help you with order tracking, product recommendations, technical support, and more. How can I assist you today?' }
+  ]);
+  const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
+  const messagesEnd = useRef(null);
+
+  useEffect(() => { messagesEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  const send = async () => {
+    if (!input.trim() || sending) return;
+    const msg = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text: msg }]);
+    setSending(true);
+    const res = await api('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg }),
+    });
+    setSending(false);
+    setMessages(prev => [...prev, { role: 'ai', text: res?.response || 'Sorry, I encountered an error. Please try again.' }]);
+  };
+
+  return (
+    <div className="chat-container">
+      <div className="chat-messages">
+        {messages.map((m, i) => (
+          <div key={i} className={`chat-bubble ${m.role}`}>{m.text}</div>
+        ))}
+        {sending && (
+          <div className="chat-bubble ai" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="spinner" style={{ width: 14, height: 14 }}></div> Thinking...
+          </div>
+        )}
+        <div ref={messagesEnd} />
+      </div>
+      <div className="chat-input-row">
+        <input className="chat-input" placeholder="Ask me anything about Lingyun phones..."
+          value={input} onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && send()} />
+        <button className="btn btn-primary" onClick={send} disabled={sending}>Send</button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GENIE FLOATING ASSISTANT
+// ═══════════════════════════════════════════════════════════════════
+function Genie() {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
+  const bodyRef = useRef(null);
+
+  useEffect(() => { bodyRef.current?.scrollTo(0, bodyRef.current.scrollHeight); }, [messages]);
+
+  const ask = async () => {
+    if (!input.trim() || sending) return;
+    const q = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text: q }]);
+    setSending(true);
+    const res = await api('/api/genie/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q }),
+    });
+    setSending(false);
+    if (res) {
+      setMessages(prev => [...prev, { role: 'ai', text: res.answer || 'No answer available.', sql: res.sql, results: res.results }]);
+    } else {
+      setMessages(prev => [...prev, { role: 'ai', text: 'Sorry, something went wrong.' }]);
+    }
+  };
+
+  return (
+    <>
+      {open && (
+        <div className="genie-panel">
+          <div className="genie-header">
+            <div className="genie-header-icon">{"\u2728"}</div>
+            <div className="genie-header-text">
+              <h3>Data Genie</h3>
+              <p>Ask anything about your business data</p>
+            </div>
+            <button onClick={() => setOpen(false)} style={{ marginLeft: 'auto', background: 'none', color: '#9ca3af', fontSize: 18 }}>{"\u2715"}</button>
+          </div>
+          <div className="genie-body" ref={bodyRef}>
+            {messages.length === 0 && (
+              <div style={{ textAlign: 'center', color: '#6b7280', padding: 20, fontSize: 13 }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>{"\u2728"}</div>
+                Try: "What is our total revenue by region?" or "Which phone model has the most complaints?"
+              </div>
+            )}
+            {messages.map((m, i) => (
+              <div key={i}>
+                <div className={`chat-bubble ${m.role}`}>{m.text}</div>
+                {m.sql && (
+                  <div className="genie-sql">
+                    <details>
+                      <summary>View Generated SQL</summary>
+                      <pre>{m.sql}</pre>
+                    </details>
+                  </div>
+                )}
+              </div>
+            ))}
+            {sending && (
+              <div className="chat-bubble ai" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="spinner" style={{ width: 14, height: 14 }}></div> Querying data...
+              </div>
+            )}
+          </div>
+          <div className="genie-footer">
+            <div className="genie-input-row">
+              <input className="chat-input" placeholder="Ask a business question..."
+                value={input} onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && ask()} />
+              <button className="btn btn-primary" onClick={ask} disabled={sending}>Ask</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <button className="genie-fab" onClick={() => setOpen(!open)}>
+        {open ? '\u2715' : '\u2728'}
+      </button>
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// APP ROOT
+// ═══════════════════════════════════════════════════════════════════
+function App() {
+  return (
+    <HashRouter>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<ExecutiveInsights />} />
+        <Route path="/decisions" element={<DecisionHub />} />
+        <Route path="/portal" element={<ConsumerPortal />} />
+      </Routes>
+      <Genie />
+    </HashRouter>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
