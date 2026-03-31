@@ -1,0 +1,43 @@
+bundle:
+  name: lingyun-hq
+
+targets:
+  dev:
+    workspace:
+      host: https://e2-demo-field-eng.cloud.databricks.com
+      profile: e2-demo-west
+
+resources:
+  apps:
+    lingyun-hq:
+      name: lingyun-hq
+      description: "Lingyun Hyper-Intelligence Command Center"
+      source_code_path: .
+      config:
+        command:
+          - python
+          - -m
+          - uvicorn
+          - app:app
+          - --host
+          - "0.0.0.0"
+          - --port
+          - "8000"
+        env:
+          - name: DATABRICKS_WAREHOUSE_ID
+            value: "4b9b953939869799"
+          - name: CATALOG
+            value: "lingyun_demo"
+          - name: SCHEMA
+            value: "default"
+          - name: SERVING_ENDPOINT
+            value: "databricks-meta-llama-3-3-70b-instruct"
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: "4b9b953939869799"
+            permission: CAN_USE
+        - name: serving-endpoint
+          serving_endpoint:
+            name: "databricks-meta-llama-3-3-70b-instruct"
+            permission: CAN_QUERY
