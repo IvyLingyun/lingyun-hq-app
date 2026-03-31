@@ -129,29 +129,48 @@ def execute_sql(query: str, params: dict = None) -> List[Dict[str, Any]]:
 
 # ─── LLM Helper ─────────────────────────────────────────────────────────────
 def call_llm(system_prompt: str, user_message: str) -> str:
-    """Call Foundation Model API for AI recommendations."""
+    """Call Foundation Model API via REST (bypasses SDK serialization issues)."""
     try:
-        response = w.serving_endpoints.query(
-            name=SERVING_ENDPOINT,
-            messages=[
+        import urllib.request
+        import ssl
+        host = w.config.host.rstrip("/")
+        token = w.config.token
+        if not token:
+            # For OAuth/U2M auth, get token from authenticate()
+            auth = w.config.authenticate()
+            if isinstance(auth, dict):
+                token = auth.get("Authorization", "").replace("Bearer ", "")
+            elif callable(auth):
+                headers = auth("GET", "")
+                token = headers.get("Authorization", "").replace("Bearer ", "")
+
+        payload = json.dumps({
+            "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
             ],
-            max_tokens=1024,
-            temperature=0.3,
+            "max_tokens": 1024,
+            "temperature": 0.3,
+        }).encode()
+
+        req = urllib.request.Request(
+            f"{host}/serving-endpoints/{SERVING_ENDPOINT}/invocations",
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
         )
-        # Handle both object-style and dict-style SDK responses
-        if hasattr(response, 'choices'):
-            choices = response.choices
-        else:
-            choices = response.get("choices", []) if isinstance(response, dict) else []
+        ctx = ssl.create_default_context()
+        with urllib.request.urlopen(req, context=ctx, timeout=60) as resp:
+            result = json.loads(resp.read())
+
+        choices = result.get("choices", [])
         if not choices:
             return "No response from AI model."
-        choice = choices[0]
-        if isinstance(choice, dict):
-            msg = choice.get("message", {})
-            return msg.get("content", "") if isinstance(msg, dict) else str(msg)
-        return choice.message.content
+        msg = choices[0].get("message", {})
+        return msg.get("content", "") if isinstance(msg, dict) else str(msg)
     except Exception as e:
         logger.error(f"LLM call error: {e}")
         return f"AI service temporarily unavailable: {str(e)}"
