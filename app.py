@@ -366,22 +366,24 @@ def get_action_context(action_id: str):
         ORDER BY created_at DESC
     """)
 
-    # Generate AI recommendation
-    context = json.dumps({
-        "action": action_item,
-        "order_history": customer_orders,
-        "ticket_history": customer_tickets,
-    }, default=str)
+    # Generate AI recommendation — truncate context to avoid 400 errors
+    context_summary = (
+        f"Customer: {action_item.get('customer_name')} (LTV: ${action_item.get('customer_ltv')})\n"
+        f"Phone: {action_item.get('phone_model')}\n"
+        f"Action Type: {action_item.get('action_type')}\n"
+        f"Priority: {action_item.get('priority')}\n"
+        f"Description: {action_item.get('action_description', '')[:200]}\n"
+        f"Trigger: {action_item.get('trigger_reason', '')[:200]}\n"
+        f"Orders: {len(customer_orders)} total\n"
+        f"Tickets: {len(customer_tickets)} total\n"
+    )
+    if customer_tickets:
+        t = customer_tickets[0]
+        context_summary += f"Latest ticket: {t.get('issue_category')} - {t.get('issue_description', '')[:150]}\n"
 
     ai_recommendation = call_llm(
-        system_prompt="""You are a senior customer success AI for Lingyun Phones.
-        Given a VIP customer's action item, order history, and ticket history, provide:
-        1. A risk assessment (Low/Medium/High/Critical)
-        2. Recommended immediate action (specific, actionable)
-        3. Long-term relationship strategy
-        4. Estimated cost of recommended action
-        Be concise and professional. Format as bullet points.""",
-        user_message=f"Analyze this VIP customer situation and recommend action:\n{context}"
+        system_prompt="You are a senior customer success AI for Lingyun Phones. Given a VIP customer situation, provide: 1) Risk assessment 2) Recommended action 3) Relationship strategy 4) Estimated cost. Be concise, use bullet points.",
+        user_message=f"Analyze and recommend:\n{context_summary}"
     )
 
     return {
