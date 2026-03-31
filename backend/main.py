@@ -448,14 +448,27 @@ def genie_query(query: GenieQuery):
 
     try:
         results = execute_sql(sql)
-        # Generate natural language answer
-        answer = call_llm(
-            system_prompt="You are a helpful business analyst. Given a SQL query and its results, provide a clear, concise natural language answer. Be specific with numbers.",
-            user_message=f"Question: {query.question}\nSQL: {sql}\nResults: {json.dumps(results, default=str)[:2000]}",
-        )
+        # Generate natural language answer with truncated results
+        results_text = json.dumps(results[:10], default=str)
+        if len(results_text) > 1500:
+            results_text = results_text[:1500] + "..."
+        try:
+            answer = call_llm(
+                system_prompt="You are a business analyst. Answer the question based on the query results. Be specific with numbers. Keep it under 3 sentences.",
+                user_message=f"Question: {query.question}\nResults: {results_text}",
+            )
+        except Exception as llm_err:
+            # If LLM fails, generate a simple answer from the data
+            logger.error(f"LLM answer error: {llm_err}")
+            if results:
+                answer = f"Query returned {len(results)} row(s). " + ", ".join(
+                    f"{k}: {v}" for k, v in list(results[0].items())[:5]
+                )
+            else:
+                answer = "Query returned no results."
         return {"question": query.question, "sql": sql, "results": results, "answer": answer}
     except Exception as e:
-        return {"question": query.question, "sql": sql, "results": [], "answer": f"Query error: {str(e)}. The generated SQL may need adjustment."}
+        return {"question": query.question, "sql": sql, "results": [], "answer": f"Query error: {str(e)}"}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PAGE 3 ENDPOINTS: Consumer Portal
